@@ -28,13 +28,27 @@ class HRNetStem(layers.Layer):
 
 class HRNetTail(layers.Layer):
 
-    def __init__(self, filters=64, **kwargs):
+    def __init__(self, input_channels=64, output_channels=17, **kwargs):
         super(HRNetTail, self).__init__(**kwargs)
 
-        # TODO: Implementation tail part.
+        # Up sampling layers.
+        scales = [2, 4, 8]
+        self.up_scale_layers = [layers.UpSampling2D((s, s)) for s in scales]
+        self.concatenate = layers.Concatenate()
+        self.conv_1 = layers.Conv2D(filters=input_channels, kernel_size=(1, 1),
+                                    strides=(1, 1), padding='same')
+        self.batch_norm = layers.BatchNormalization()
+        self.activation = layers.Activation('relu')
+        self.conv_2 = layers.Conv2D(filters=output_channels, kernel_size=(1, 1),
+                                    strides=(1, 1), padding='same')
 
     def call(self, inputs):
-        # TODO: Implementation tail part.
+        inputs[1:] = [f(x) for f, x in zip(self.up_scale_layers, inputs[1:])]
+        x = self.concatenate(inputs)
+        x = self.conv_1(x)
+        x = self.batch_norm(x)
+        x = self.activation(x)
+        x = self.conv_2(x)
 
         return x
 
@@ -46,7 +60,9 @@ class HRNetV2(Model):
 
         self.stem = HRNetStem(64)
         self.body = HRNetBody(width)
-        self.tail = FusionBlock(15*width, 4, 1)
+        last_stage_width = sum([width * pow(2, n) for n in range(4)])
+        self.tail = HRNetTail(input_channels=last_stage_width,
+                              output_channels=17)
 
     def call(self, inputs):
         x = self.stem(inputs)

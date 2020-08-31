@@ -55,14 +55,14 @@ class HRNetTail(layers.Layer):
 
 class HRNetV2(Model):
 
-    def __init__(self, width=18, **kwargs):
+    def __init__(self, width=18, output_channels=98, **kwargs):
         super(HRNetV2, self).__init__(**kwargs)
 
         self.stem = HRNetStem(64)
         self.body = HRNetBody(width)
         last_stage_width = sum([width * pow(2, n) for n in range(4)])
         self.tail = HRNetTail(input_channels=last_stage_width,
-                              output_channels=17)
+                              output_channels=output_channels)
 
     def call(self, inputs):
         x = self.stem(inputs)

@@ -1,5 +1,7 @@
 """The training script for HRNet facial landmark detection.
 """
+import os
+
 import tensorflow as tf
 from tensorflow import keras
 
@@ -56,11 +58,30 @@ if __name__ == "__main__":
 
     dataset_val = parse_dataset(tf.data.TFRecordDataset(record_file_test))
 
-    # Build the model.
+    # Create the model.
     model = HRNetV2(width=18, output_channels=98)
+
+    # Restore the latest model if checkpoints are available.`
+    checkpoint_dir = "./ckpt"
+    if not os.path.exists(checkpoint_dir):
+        os.makedirs(checkpoint_dir)
+    checkpoints = [checkpoint_dir + "/" +
+                   name for name in os.listdir(checkpoint_dir)]
+    if checkpoints:
+        # TODO: filter the latest checkpoint file.
+        model.load_weights(checkpoint_dir + "/ckpt-1")
+
     model.compile(optimizer=keras.optimizers.Adam(),
                   loss=keras.losses.MeanSquaredError(),
                   metrics=[keras.metrics.MeanSquaredError()])
 
+    # Callbacks are used to record the training process.
+    callbacks = [
+        # Save a SavedModel. This could be used to resume training.
+        # TODO: more proper name for checkpoint files.
+        keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_dir + "/ckpt-{epoch}", save_freq=1, verbose=1)
+    ]
+
     # Train the model.
-    model.fit(dataset_train, epochs=1)
+    model.fit(dataset_train, epochs=1, callbacks=callbacks)

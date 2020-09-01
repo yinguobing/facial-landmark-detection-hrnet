@@ -80,7 +80,7 @@ if __name__ == "__main__":
         # Save a SavedModel. This could be used to resume training.
         # TODO: more proper name for checkpoint files.
         keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_dir + "/ckpt-{epoch}", save_freq=100, verbose=1)
+            filepath=checkpoint_dir + "/ckpt-{epoch}", save_freq='epoch', verbose=1)
     ]
 
     # Train the model.

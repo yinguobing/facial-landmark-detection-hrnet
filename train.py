@@ -57,6 +57,7 @@ if __name__ == "__main__":
     dataset_train = dataset_train.shuffle(1024).batch(16)
 
     dataset_val = parse_dataset(tf.data.TFRecordDataset(record_file_test))
+    dataset_val = dataset_val.batch(16)
 
     # Create the model.
     model = HRNetV2(width=18, output_channels=98)
@@ -76,12 +77,20 @@ if __name__ == "__main__":
                   metrics=[keras.metrics.MeanSquaredError()])
 
     # Callbacks are used to record the training process.
-    callbacks = [
-        # Save a SavedModel. This could be used to resume training.
-        # TODO: more proper name for checkpoint files.
-        keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_dir + "/ckpt-{epoch}", save_freq='epoch', verbose=1)
-    ]
+
+    # Save a SavedModel. This could be used to resume training.
+    # TODO: more proper name for checkpoint files.
+    callback_checkpoint = keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_dir + "/ckpt-{epoch}", save_freq='epoch', verbose=1)
+
+    # Visualization in TensorBoard
+    callback_tensorboard = keras.callbacks.TensorBoard(log_dir="./log",
+                                                       histogram_freq=10,
+                                                       write_graph=True,
+                                                       embeddings_freq=10,
+                                                       update_freq=10,
+                                                       write_images=True,)
+    callbacks = [callback_checkpoint, callback_tensorboard]
 
     # Train the model.
     model.fit(dataset_train, validation_data=dataset_val,

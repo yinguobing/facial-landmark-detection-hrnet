@@ -55,10 +55,10 @@ if __name__ == "__main__":
     record_file_test = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_test.record"
 
     dataset_train = parse_dataset(tf.data.TFRecordDataset(record_file_train))
-    dataset_train = dataset_train.shuffle(1024).batch(16)
+    dataset_train = dataset_train.shuffle(1024).batch(32).prefetch(2)
 
     dataset_val = parse_dataset(tf.data.TFRecordDataset(record_file_test))
-    dataset_val = dataset_val.batch(16)
+    dataset_val = dataset_val.batch(32)
 
     # Create the model.
     model = HRNetV2(width=18, output_channels=98)

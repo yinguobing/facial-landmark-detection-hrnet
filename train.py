@@ -63,14 +63,13 @@ if __name__ == "__main__":
     model = HRNetV2(width=18, output_channels=98)
 
     # Restore the latest model if checkpoints are available.`
-    checkpoint_dir = "./ckpt"
+    checkpoint_dir = "./checkpoints"
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
-    checkpoints = [checkpoint_dir + "/" +
-                   name for name in os.listdir(checkpoint_dir)]
-    if checkpoints:
-        # TODO: filter the latest checkpoint file.
-        model.load_weights(checkpoint_dir + "/ckpt-1")
+
+    latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
+    if latest_checkpoint:
+        model.load_weights(latest_checkpoint)
 
     model.compile(optimizer=keras.optimizers.Adam(),
                   loss=keras.losses.MeanSquaredError(),
@@ -78,20 +77,19 @@ if __name__ == "__main__":
 
     # Callbacks are used to record the training process.
 
-    # Save a SavedModel. This could be used to resume training.
-    # TODO: more proper name for checkpoint files.
+    # Save a checkpoint. This could be used to resume training.
+    checkpoint_path = os.path.join(checkpoint_dir, "ckpt")
     callback_checkpoint = keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_dir + "/ckpt-{epoch}", save_freq='epoch', verbose=1)
+        filepath=checkpoint_path, save_weights_only=True, verbose=1)
 
     # Visualization in TensorBoard
+    # Graph is not available for now, see tensorflow issue:42133
     callback_tensorboard = keras.callbacks.TensorBoard(log_dir="./log",
                                                        histogram_freq=10,
                                                        write_graph=True,
-                                                       embeddings_freq=10,
-                                                       update_freq=10,
-                                                       write_images=True,)
+                                                       update_freq=10,)
     callbacks = [callback_checkpoint, callback_tensorboard]
 
     # Train the model.
     model.fit(dataset_train, validation_data=dataset_val,
-              epochs=1, callbacks=callbacks)
+              epochs=3, callbacks=callbacks)

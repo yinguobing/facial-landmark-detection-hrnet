@@ -44,7 +44,8 @@ def parse_dataset(dataset):
 
         return image_decoded, heatmaps
 
-    parsed_dataset = dataset.map(_parse_function)
+    parsed_dataset = dataset.map(_parse_function,
+                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
     return parsed_dataset
 
 

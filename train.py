@@ -1,11 +1,18 @@
 """The training script for HRNet facial landmark detection.
 """
 import os
+from argparse import ArgumentParser
 
 import tensorflow as tf
 from tensorflow import keras
 
 from network import HRNetV2
+
+
+parser = ArgumentParser()
+parser.add_argument("--export_only", default=False, type=bool,
+                    help="Save the model without training.")
+args = parser.parse_args()
 
 
 def parse_dataset(dataset):
@@ -50,15 +57,6 @@ def parse_dataset(dataset):
 
 
 if __name__ == "__main__":
-    # Construct training and validation datasets.
-    record_file_train = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_train.record"
-    record_file_test = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_test.record"
-
-    dataset_train = parse_dataset(tf.data.TFRecordDataset(record_file_train))
-    dataset_train = dataset_train.shuffle(1024).batch(32).prefetch(2)
-
-    dataset_val = parse_dataset(tf.data.TFRecordDataset(record_file_test))
-    dataset_val = dataset_val.batch(32)
 
     # Create the model.
     model = HRNetV2(width=18, output_channels=98)
@@ -78,24 +76,61 @@ if __name__ == "__main__":
                   loss=keras.losses.MeanSquaredError(),
                   metrics=[keras.metrics.MeanSquaredError()])
 
-    # Callbacks are used to record the training process.
-
-    # Save a checkpoint. This could be used to resume training.
-    checkpoint_path = os.path.join(checkpoint_dir, "ckpt")
-    callback_checkpoint = keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_path,
-        save_weights_only=False,
-        verbose=1,
-        save_best_only=True)
-
-    # Visualization in TensorBoard
-    # Graph is not available for now, see tensorflow issue:42133
-    callback_tensorboard = keras.callbacks.TensorBoard(log_dir="./log",
-                                                       histogram_freq=10,
-                                                       write_graph=True,
-                                                       update_freq=10)
-    callbacks = [callback_checkpoint, callback_tensorboard]
+    # Construct dataset for validation & testing.
+    record_file_test = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_test.record"
+    dataset_val = parse_dataset(tf.data.TFRecordDataset(record_file_test))
+    dataset_val = dataset_val.batch(32)
 
     # Train the model.
-    model.fit(dataset_train, validation_data=dataset_val,
-              epochs=20, callbacks=callbacks, initial_epoch=0)
+    if not args.export_only:
+
+        # Callbacks are used to record the training process.
+
+        # Save a checkpoint. This could be used to resume training.
+        checkpoint_path = os.path.join(checkpoint_dir, "ckpt")
+        callback_checkpoint = keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_path,
+            save_weights_only=False,
+            verbose=1,
+            save_best_only=True)
+
+        # Visualization in TensorBoard
+        # Graph is not available for now, see tensorflow issue:42133
+        callback_tensorboard = keras.callbacks.TensorBoard(log_dir="./log",
+                                                           histogram_freq=10,
+                                                           write_graph=True,
+                                                           update_freq=10)
+        callbacks = [callback_checkpoint, callback_tensorboard]
+
+        # Construct training datasets.
+        record_file_train = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_train.record"
+        dataset_train = parse_dataset(
+            tf.data.TFRecordDataset(record_file_train))
+        dataset_train = dataset_train.shuffle(1024).batch(32).prefetch(2)
+
+        # Start training loop.
+        model.fit(dataset_train, validation_data=dataset_val,
+                  epochs=20, callbacks=callbacks, initial_epoch=0)
+
+    # Evaluate the model before saving.
+    # model.evaluate(dataset_val)
+
+    # Save the model.
+    class SaveModule(tf.Module):
+        """This class is required for subclassed Keras model while saving. See
+        issue: https://github.com/tensorflow/models/issues/9235
+        """
+
+        def __init__(self, model):
+            super(SaveModule, self).__init__()
+            self.model = model
+
+        @tf.function
+        def serve(self, x):
+            return self.model.call(x)
+
+    model_to_save = SaveModule(model)
+    sample_input = tf.zeros((32, 256, 256, 3))
+    _ = model_to_save.serve(sample_input)
+    export_dir = "./exported"
+    tf.saved_model.save(model_to_save, export_dir)

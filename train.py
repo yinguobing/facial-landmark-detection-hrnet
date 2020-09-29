@@ -12,6 +12,8 @@ from network import HRNetV2
 parser = ArgumentParser()
 parser.add_argument("--export_only", default=False, type=bool,
                     help="Save the model without training.")
+parser.add_argument("--eval_only", default=False, type=bool,
+                    help="Evaluate the model without training.")
 args = parser.parse_args()
 
 
@@ -82,7 +84,7 @@ if __name__ == "__main__":
     dataset_val = dataset_val.batch(32)
 
     # Train the model.
-    if not args.export_only:
+    if not (args.eval_only or args.export_only):
 
         # Callbacks are used to record the training process.
 
@@ -112,25 +114,27 @@ if __name__ == "__main__":
         model.fit(dataset_train, validation_data=dataset_val,
                   epochs=20, callbacks=callbacks, initial_epoch=0)
 
-    # Evaluate the model before saving.
-    # model.evaluate(dataset_val)
+    # Evaluate the model.
+    if not args.export_only:
+        model.evaluate(dataset_val)
 
     # Save the model.
-    class SaveModule(tf.Module):
-        """This class is required for subclassed Keras model while saving. See
-        issue: https://github.com/tensorflow/models/issues/9235
-        """
+    if not args.eval_only:
+        class SaveModule(tf.Module):
+            """This class is required for subclassed Keras model while saving. See
+            issue: https://github.com/tensorflow/models/issues/9235
+            """
 
-        def __init__(self, model):
-            super(SaveModule, self).__init__()
-            self.model = model
+            def __init__(self, model):
+                super(SaveModule, self).__init__()
+                self.model = model
 
-        @tf.function
-        def serve(self, x):
-            return self.model.call(x)
+            @tf.function
+            def serve(self, x):
+                return self.model.call(x)
 
-    model_to_save = SaveModule(model)
-    sample_input = tf.zeros((32, 256, 256, 3))
-    _ = model_to_save.serve(sample_input)
-    export_dir = "./exported"
-    tf.saved_model.save(model_to_save, export_dir)
+        model_to_save = SaveModule(model)
+        sample_input = tf.zeros((1, 256, 256, 3))
+        _ = model_to_save.serve(sample_input)
+        export_dir = "./exported"
+        tf.saved_model.save(model_to_save, export_dir)

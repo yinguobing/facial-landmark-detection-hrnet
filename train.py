@@ -67,10 +67,12 @@ if __name__ == "__main__":
     checkpoint_dir = "./checkpoints"
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
+        print("Checkpoint directory created: {}".format(checkpoint_dir))
 
     latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
     if latest_checkpoint:
         model.load_weights(latest_checkpoint)
+        print("Checkpoint restored: {}".format(latest_checkpoint))
 
     model.compile(optimizer=keras.optimizers.Adam(),
                   loss=keras.losses.MeanSquaredError(),
@@ -81,7 +83,7 @@ if __name__ == "__main__":
     # Save a checkpoint. This could be used to resume training.
     checkpoint_path = os.path.join(checkpoint_dir, "ckpt")
     callback_checkpoint = keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_path, save_weights_only=True, verbose=1)
+        filepath=checkpoint_path, save_weights_only=False, verbose=1)
 
     # Visualization in TensorBoard
     # Graph is not available for now, see tensorflow issue:42133
@@ -93,4 +95,4 @@ if __name__ == "__main__":
 
     # Train the model.
     model.fit(dataset_train, validation_data=dataset_val,
-              epochs=3, callbacks=callbacks)
+              epochs=20, callbacks=callbacks, initial_epoch=0)

@@ -83,14 +83,17 @@ if __name__ == "__main__":
     # Save a checkpoint. This could be used to resume training.
     checkpoint_path = os.path.join(checkpoint_dir, "ckpt")
     callback_checkpoint = keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_path, save_weights_only=False, verbose=1)
+        filepath=checkpoint_path,
+        save_weights_only=False,
+        verbose=1,
+        save_best_only=True)
 
     # Visualization in TensorBoard
     # Graph is not available for now, see tensorflow issue:42133
     callback_tensorboard = keras.callbacks.TensorBoard(log_dir="./log",
                                                        histogram_freq=10,
                                                        write_graph=True,
-                                                       update_freq=10,)
+                                                       update_freq=10)
     callbacks = [callback_checkpoint, callback_tensorboard]
 
     # Train the model.

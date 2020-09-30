@@ -112,17 +112,17 @@ if __name__ == "__main__":
 
         # Start training loop.
         model.fit(dataset_train, validation_data=dataset_val,
-                  epochs=20, callbacks=callbacks, initial_epoch=0)
+                  epochs=80, callbacks=callbacks, initial_epoch=0)
 
     # Evaluate the model.
     if not args.export_only:
         model.evaluate(dataset_val)
 
-    # Save the model.
-    if not args.eval_only:
+    # Save the model for inference.
+    if args.export_only:
         class SaveModule(tf.Module):
-            """This class is required for subclassed Keras model while saving. See
-            issue: https://github.com/tensorflow/models/issues/9235
+            """This class is required for subclassed Keras model while saving.
+            See issue: https://github.com/tensorflow/models/issues/9235
             """
 
             def __init__(self, model):

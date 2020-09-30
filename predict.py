@@ -14,19 +14,34 @@ def top_k_indices(x, k):
     return np.unravel_index(indices, x.shape)
 
 
+def get_peak_location(heatmap, image_size=(256, 256)):
+    """Return the interpreted location of the top 2 predictions."""
+    h_height, h_width = heatmap.shape
+    [x1, x2], [y1, y2] = top_k_indices(heatmap, 2)
+    x = (x1 + (x2 - x1)/4) / h_height * image_size[0]
+    y = (y1 + (y2 - y1)/4) / h_width * image_size[1]
+
+    return int(x), int(y)
+
+
 if __name__ == "__main__":
     img = cv2.imread("/home/robin/Desktop/sample/face.jpg")
     img = cv2.resize(img, (256, 256))
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     imported = tf.saved_model.load("./exported")
-    heatmaps = imported.serve([img]).numpy()[0]
+    heatmaps = imported.serve([img_rgb]).numpy()[0]
     heatmaps = np.rollaxis(heatmaps, 2)
 
     heatmap_idvs = np.hstack(heatmaps[:8])
     for row in range(1, 12, 1):
         heatmap_idvs = np.vstack(
             [heatmap_idvs, np.hstack(heatmaps[row:row+8])])
+    
+    for heatmap in heatmaps:
+        mark = get_peak_location(heatmap)
+        cv2.circle(img, mark, 3, (0, 255, 0), -1) 
 
+    cv2.imshow('image', img)
     cv2.imshow("Heatmap_idvs", heatmap_idvs)
     cv2.waitKey()

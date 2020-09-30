@@ -3,6 +3,17 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
+
+def top_k_indices(x, k):
+    """Returns the k largest element indices from a numpy array. You can find
+     the original code here: https://stackoverflow.com/q/6910641
+    """
+    flat = x.flatten()
+    indices = np.argpartition(flat, -k)[-k:]
+    indices = indices[np.argsort(-flat[indices])]
+    return np.unravel_index(indices, x.shape)
+
+
 if __name__ == "__main__":
     img = cv2.imread("/home/robin/Desktop/sample/face.jpg")
     img = cv2.resize(img, (256, 256))

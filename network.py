@@ -49,7 +49,7 @@ class HRNetTail(layers.Layer):
         # Up sampling layers.
         scales = [2, 4, 8]
         self.up_scale_layers = [layers.UpSampling2D((s, s)) for s in scales]
-        self.concatenate = layers.Concatenate()
+        self.concatenate = layers.Concatenate(axis=3)
         self.conv_1 = layers.Conv2D(filters=self.input_channels, kernel_size=(1, 1),
                                     strides=(1, 1), padding='same')
         self.batch_norm = layers.BatchNormalization()
@@ -60,8 +60,8 @@ class HRNetTail(layers.Layer):
         self.built = True
 
     def call(self, inputs):
-        inputs[1:] = [f(x) for f, x in zip(self.up_scale_layers, inputs[1:])]
-        x = self.concatenate(inputs)
+        scaled = [f(x) for f, x in zip(self.up_scale_layers, inputs[1:])]
+        x = self.concatenate([inputs[0], scaled[0], scaled[1], scaled[2]])
         x = self.conv_1(x)
         x = self.batch_norm(x)
         x = self.activation(x)

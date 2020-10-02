@@ -10,6 +10,10 @@ from network import HRNetV2
 
 
 parser = ArgumentParser()
+parser.add_argument("--epochs", default=10, type=int,
+                    help="Number of training epochs.")
+parser.add_argument("--batch_size", default=32, type=int,
+                    help="Training batch size.")
 parser.add_argument("--export_only", default=False, type=bool,
                     help="Save the model without training.")
 parser.add_argument("--eval_only", default=False, type=bool,
@@ -44,6 +48,7 @@ def parse_dataset(dataset):
         image_decoded = tf.cast(image_decoded, tf.float32)
         # TODO: infer the tensor shape automatically
         image_decoded = tf.reshape(image_decoded, [256, 256, 3])
+        image_decoded = (image_decoded - 127.5)/127.5
 
         heatmaps = tf.io.parse_tensor(example['heatmap/map'], tf.double)
         heatmaps = tf.cast(heatmaps, tf.float32)
@@ -81,12 +86,13 @@ if __name__ == "__main__":
     # Construct dataset for validation & testing.
     record_file_test = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_test.record"
     dataset_val = parse_dataset(tf.data.TFRecordDataset(record_file_test))
-    dataset_val = dataset_val.batch(32)
+    dataset_val = dataset_val.batch(args.batch_size)
 
     # Train the model.
     if not (args.eval_only or args.export_only):
-
-        # Callbacks are used to record the training process.
+        # Hyper parameters for training.
+        epochs = args.epochs
+        batch_size = args.batch_size
 
         # Save a checkpoint. This could be used to resume training.
         checkpoint_path = os.path.join(checkpoint_dir, "ckpt")
@@ -99,20 +105,21 @@ if __name__ == "__main__":
         # Visualization in TensorBoard
         # Graph is not available for now, see tensorflow issue:42133
         callback_tensorboard = keras.callbacks.TensorBoard(log_dir="./log",
-                                                           histogram_freq=10,
+                                                           histogram_freq=1024,
                                                            write_graph=True,
-                                                           update_freq=10)
+                                                           update_freq='epoch')
         callbacks = [callback_checkpoint, callback_tensorboard]
 
         # Construct training datasets.
         record_file_train = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_train.record"
         dataset_train = parse_dataset(
             tf.data.TFRecordDataset(record_file_train))
-        dataset_train = dataset_train.shuffle(1024).batch(32).prefetch(2)
+        dataset_train = dataset_train.shuffle(
+            1024).batch(batch_size).prefetch(2)
 
         # Start training loop.
         model.fit(dataset_train, validation_data=dataset_val,
-                  epochs=80, callbacks=callbacks, initial_epoch=0)
+                  epochs=epochs, callbacks=callbacks, initial_epoch=0)
 
     # Evaluate the model.
     if not args.export_only:

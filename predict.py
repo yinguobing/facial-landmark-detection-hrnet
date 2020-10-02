@@ -28,19 +28,20 @@ if __name__ == "__main__":
     img = cv2.imread("/home/robin/Desktop/sample/face.jpg")
     img = cv2.resize(img, (256, 256))
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_input = (np.array(img_rgb, dtype=np.float32) - 127.5)/127.5
 
     imported = tf.saved_model.load("./exported")
-    heatmaps = imported.serve([img_rgb]).numpy()[0]
+    heatmaps = imported([img_input]).numpy()[0]
     heatmaps = np.rollaxis(heatmaps, 2)
 
     heatmap_idvs = np.hstack(heatmaps[:8])
     for row in range(1, 12, 1):
         heatmap_idvs = np.vstack(
             [heatmap_idvs, np.hstack(heatmaps[row:row+8])])
-    
+
     for heatmap in heatmaps:
         mark = get_peak_location(heatmap)
-        cv2.circle(img, mark, 3, (0, 255, 0), -1) 
+        cv2.circle(img, mark, 2, (0, 255, 0), -1)
 
     cv2.imshow('image', img)
     cv2.imshow("Heatmap_idvs", heatmap_idvs)

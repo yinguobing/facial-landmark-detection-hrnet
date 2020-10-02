@@ -127,21 +127,5 @@ if __name__ == "__main__":
 
     # Save the model for inference.
     if args.export_only:
-        class SaveModule(tf.Module):
-            """This class is required for subclassed Keras model while saving.
-            See issue: https://github.com/tensorflow/models/issues/9235
-            """
-
-            def __init__(self, model):
-                super(SaveModule, self).__init__()
-                self.model = model
-
-            @tf.function
-            def serve(self, x):
-                return self.model.call(x)
-
-        model_to_save = SaveModule(model)
-        sample_input = tf.zeros((1, 256, 256, 3))
-        _ = model_to_save.serve(sample_input)
-        export_dir = "./exported"
-        tf.saved_model.save(model_to_save, export_dir)
+        model.predict(tf.zeros((1, 256, 256, 3)))
+        model.save("./exported")

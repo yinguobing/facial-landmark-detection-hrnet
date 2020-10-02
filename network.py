@@ -9,12 +9,17 @@ class HRNetStem(layers.Layer):
     def __init__(self, filters=64, **kwargs):
         super(HRNetStem, self).__init__(**kwargs)
 
+        self.filters = filters
+
+    def build(self, input_shape):
         # The stem of the network.
-        self.conv_1 = layers.Conv2D(filters, 3, 2, 'same')
+        self.conv_1 = layers.Conv2D(self.filters, 3, 2, 'same')
         self.batch_norm_1 = layers.BatchNormalization()
-        self.conv_2 = layers.Conv2D(filters, 3, 2, 'same')
+        self.conv_2 = layers.Conv2D(self.filters, 3, 2, 'same')
         self.batch_norm_2 = layers.BatchNormalization()
         self.activation = layers.Activation('relu')
+
+        self.built = True
 
     def call(self, inputs):
         x = self.conv_1(inputs)
@@ -25,22 +30,34 @@ class HRNetStem(layers.Layer):
 
         return x
 
+    def get_config(self):
+        config = super(HRNetStem, self).get_config()
+        config.update({"filters": self.filters})
+
+        return config
+
 
 class HRNetTail(layers.Layer):
 
     def __init__(self, input_channels=64, output_channels=17, **kwargs):
         super(HRNetTail, self).__init__(**kwargs)
 
+        self.input_channels = input_channels
+        self.output_channels = output_channels
+
+    def build(self, input_shape):
         # Up sampling layers.
         scales = [2, 4, 8]
         self.up_scale_layers = [layers.UpSampling2D((s, s)) for s in scales]
         self.concatenate = layers.Concatenate()
-        self.conv_1 = layers.Conv2D(filters=input_channels, kernel_size=(1, 1),
+        self.conv_1 = layers.Conv2D(filters=self.input_channels, kernel_size=(1, 1),
                                     strides=(1, 1), padding='same')
         self.batch_norm = layers.BatchNormalization()
         self.activation = layers.Activation('relu')
-        self.conv_2 = layers.Conv2D(filters=output_channels, kernel_size=(1, 1),
+        self.conv_2 = layers.Conv2D(filters=self.output_channels, kernel_size=(1, 1),
                                     strides=(1, 1), padding='same')
+
+        self.built = True
 
     def call(self, inputs):
         inputs[1:] = [f(x) for f, x in zip(self.up_scale_layers, inputs[1:])]
@@ -51,6 +68,13 @@ class HRNetTail(layers.Layer):
         x = self.conv_2(x)
 
         return x
+
+    def get_config(self):
+        config = super(HRNetTail, self).get_config()
+        config.update({"input_channels": self.input_channels,
+                       "output_channels": self.output_channels})
+
+        return config
 
 
 class HRNetV2(Model):

@@ -35,9 +35,9 @@ Use the module `generate_heatmap_dataset.py` to generate training data. Popular 
 
 ## Training
 
-### set the training and validation dataset. 
+### Set the training and validation datasets. 
 
-These files do not change frequently so you need to set them in the source code. Take WFLW as an example.
+These files do not change frequently so set them in the source code. Take WFLW as an example.
 
 ```python
 # In module `train.py`

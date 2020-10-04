@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from network import HRNetV2
-
+from preprocess import normalize
 
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=10, type=int,
@@ -48,7 +48,9 @@ def parse_dataset(dataset):
         image_decoded = tf.cast(image_decoded, tf.float32)
         # TODO: infer the tensor shape automatically
         image_decoded = tf.reshape(image_decoded, [256, 256, 3])
-        image_decoded = (image_decoded - 127.5)/127.5
+
+        # Follow the official preprocess implementation.
+        image_decoded = normalize(image_decoded)
 
         heatmaps = tf.io.parse_tensor(example['heatmap/map'], tf.double)
         heatmaps = tf.cast(heatmaps, tf.float32)
@@ -79,7 +81,7 @@ if __name__ == "__main__":
         model.load_weights(latest_checkpoint)
         print("Checkpoint restored: {}".format(latest_checkpoint))
 
-    model.compile(optimizer=keras.optimizers.Adam(),
+    model.compile(optimizer=keras.optimizers.Adam(0.0001),
                   loss=keras.losses.MeanSquaredError(),
                   metrics=[keras.metrics.MeanSquaredError()])
 

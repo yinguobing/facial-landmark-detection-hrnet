@@ -151,9 +151,9 @@ if __name__ == "__main__":
                                                            update_freq='epoch')
 
         # Schedule the learning rate with (epoch to start, learning rate) tuples
-        schedule = [(1, 0.0001),
-                    (30, 0.00001),
-                    (50, 0.000001)]
+        schedule = [(1, 0.001),
+                    (30, 0.0001),
+                    (50, 0.00001)]
         callback_lr = EpochBasedLearningRateSchedule(schedule)
 
         # List all the callbacks.

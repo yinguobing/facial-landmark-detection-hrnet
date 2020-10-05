@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
+from preprocess import normalize
+
 
 def top_k_indices(x, k):
     """Returns the k largest element indices from a numpy array. You can find
@@ -28,7 +30,7 @@ if __name__ == "__main__":
     img = cv2.imread("/home/robin/Desktop/sample/face.jpg")
     img = cv2.resize(img, (256, 256))
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img_input = (np.array(img_rgb, dtype=np.float32) - 127.5)/127.5
+    img_input = normalize(np.array(img_rgb, dtype=np.float32))
 
     imported = tf.saved_model.load("./exported")
     heatmaps = imported([img_input]).numpy()[0]

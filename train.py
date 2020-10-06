@@ -66,15 +66,14 @@ def parse_dataset(dataset):
 
 
 class EpochBasedLearningRateSchedule(keras.callbacks.Callback):
-    """Learning rate scheduler which sets the learning rate according to schedule.
-
-    Arguments:
-    schedule: a function that takes an epoch index (integer, indexed from 0) and
-         current learning rate as inputs and returns a new learning rate as 
-         output (float).
-  """
+    """Sets the learning rate according to epoch schedule."""
 
     def __init__(self, schedule):
+        """
+        Args:
+            schedule: a tuple that takes an epoch index (integer, indexed from 0)
+            and current learning rate.
+        """
         super(EpochBasedLearningRateSchedule, self).__init__()
         self.schedule = schedule
 

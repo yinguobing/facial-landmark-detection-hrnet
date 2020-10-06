@@ -16,14 +16,14 @@ For inference:
 ![Numpy](https://img.shields.io/badge/Numpy-v1.17-brightgreen)
 
 ### Installing
-#### Get the source code for training.
+#### Get the source code for training
 
 ```shell
 # From your favorite development directory
 git clone https://github.com/yinguobing/facial-landmark-detection-hrnet.git
 ```
 
-#### Generate the training data.
+#### Generate the training data
 There are multiple public facial mark datasets available which can be used to generate training heatmaps we need. You can do this yourself or, use this repo:
 
 ```shell
@@ -35,7 +35,7 @@ Use the module `generate_heatmap_dataset.py` to generate training data. Popular 
 
 ## Training
 
-### Set the training and validation datasets. 
+### Set the training and validation datasets
 
 These files do not change frequently so set them in the source code. Take WFLW as an example.
 
@@ -55,7 +55,7 @@ Also make sure the image size and heatmap size are in accordance with the datase
 image_decoded = tf.reshape(image_decoded, [256, 256, 3])
 heatmaps = tf.reshape(heatmaps, (98, 64, 64))
 ```
-### Construct the model.
+### Construct the model
 The HRNet architecture is flexible. Custom the model if needed.
 
 ```python
@@ -64,7 +64,7 @@ model = HRNetV2(width=18, output_channels=98)
 
 `output_channels` equals to the number of facial marks of the dataset.
 
-### Start training.
+### Start training
 Set the hyper parameters in the command line.
 
 ```Shell

@@ -27,24 +27,31 @@ def get_peak_location(heatmap, image_size=(256, 256)):
 
 
 if __name__ == "__main__":
+    # Restore the model.
+    model = tf.keras.models.load_model("./exported")
+
+    # Read in and preprocess the sample image
     img = cv2.imread("/home/robin/Desktop/sample/face.jpg")
     img = cv2.resize(img, (256, 256))
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_input = normalize(np.array(img_rgb, dtype=np.float32))
 
-    imported = tf.saved_model.load("./exported")
-    heatmaps = imported([img_input]).numpy()[0]
-    heatmaps = np.rollaxis(heatmaps, 2)
+    # Do prediction.
+    heatmaps = model.predict(tf.expand_dims(img_input, 0))[0]
 
+    # Parse the heatmaps to get mark locations.
+    heatmaps = np.rollaxis(heatmaps, 2)
+    for heatmap in heatmaps:
+        mark = get_peak_location(heatmap)
+        cv2.circle(img, mark, 2, (0, 255, 0), -1)
+
+    # Show individual heatmaps stacked.
     heatmap_idvs = np.hstack(heatmaps[:8])
     for row in range(1, 12, 1):
         heatmap_idvs = np.vstack(
             [heatmap_idvs, np.hstack(heatmaps[row:row+8])])
 
-    for heatmap in heatmaps:
-        mark = get_peak_location(heatmap)
-        cv2.circle(img, mark, 2, (0, 255, 0), -1)
-
+    # Show the result in windows.
     cv2.imshow('image', img)
     cv2.imshow("Heatmap_idvs", heatmap_idvs)
     cv2.waitKey()

@@ -45,6 +45,13 @@ class MarkOperator(object):
 
         return radian if in_radian is True else np.rad2deg(radian)
 
+    def pad_to_3d(self, marks_2d, pad_value=-1):
+        """Pad the 2D marks with zeros in z axis."""
+        marks_3d = np.pad(marks_2d, ((0, 0), (0, 1)),
+                          mode='constant', constant_values=pad_value)
+
+        return marks_3d
+
     def get_center(self, marks):
         """Return the center point of the mark group."""
         x, y, z = (np.amax(marks, 0) + np.amin(marks, 0)) / 2
@@ -70,7 +77,7 @@ class MarkOperator(object):
     def flip_lr(self, marks, width):
         """Flip the marks in horizontal direction."""
         marks[:, 0] = width - marks[:, 0]
-        
+
         return marks
 
     def generate_heatmaps(self, norm_marks, map_size=(64, 64), sigma=3):

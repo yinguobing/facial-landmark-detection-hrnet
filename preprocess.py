@@ -14,6 +14,9 @@ def normalize(inputs):
 
     Args:
         inputs: a TensorFlow tensor of image.
+
+    Returns:
+        a normalized image.
     """
     img_mean = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)
     img_std = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)

@@ -25,23 +25,28 @@ def normalize(inputs):
     return ((inputs / 255.0) - img_mean)/img_std
 
 
-def rotate(image, degrees):
-    """Rotate the image in degrees.
+def rotate_randomly(image, marks, degrees=(-30, 30)):
+    """Rotate the image randomly in degree range (-degrees, degrees).
 
     Args:
         image: an image with face to be processed.
-        degrees: degrees to rotate.
+        marks: face marks.
+        degrees: degree ranges to rotate.
 
     Returns:
-        a same size image rotated.
+        a same size image rotated, and the rotated marks.
     """
+    degree = np.random.random_sample() * (degrees[1] - degrees[0]) + degrees[0]
     img_height, img_width, _ = image.shape
     rotation_mat = cv2.getRotationMatrix2D(((img_width-1)/2.0,
-                                            (img_height-1)/2.0), degrees, 1)
+                                            (img_height-1)/2.0), degree, 1)
     image_rotated = cv2.warpAffine(
         image, rotation_mat, (img_width, img_height))
 
-    return image_rotated
+    marks_rotated = MO.rotate(marks, np.deg2rad(degree),
+                              (img_width/2, img_height/2))
+
+    return image_rotated, marks_rotated
 
 
 def scale_randomly(image, marks, output_size=(256, 256), scale_range=(0, 1)):

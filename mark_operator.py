@@ -66,13 +66,14 @@ class MarkOperator(object):
 
     def rotate(self, marks, radian, center=(0, 0)):
         """Rotate the marks around center by angle"""
-        _points = marks - np.array(center, np.float)
-        cos_angle = np.cos(radian)
-        sin_angle = np.sin(radian)
+        _points = marks[:, :2] - np.array(center, np.float)
+        cos_angle = np.cos(-radian)
+        sin_angle = np.sin(-radian)
         rotaion_matrix = np.array([[cos_angle, sin_angle],
                                    [-sin_angle, cos_angle]])
+        marks[:, :2] = np.dot(_points, rotaion_matrix) + center
 
-        return np.dot(_points, rotaion_matrix) + center
+        return marks
 
     def flip_lr(self, marks, width):
         """Flip the marks in horizontal direction."""

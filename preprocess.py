@@ -81,7 +81,7 @@ def scale_randomly(image, marks, output_size=(256, 256), scale_range=(0, 1)):
 
     # Get the new mark locations.
     marks -= [margin, margin, 0]
-    marks /= ((img_width - margin * 2) * output_size[0])
+    marks = (marks / (img_width - margin * 2) * output_size[0]).astype(int)
 
     return image_resized, marks
 

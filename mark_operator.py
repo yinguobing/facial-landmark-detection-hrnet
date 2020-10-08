@@ -67,6 +67,12 @@ class MarkOperator(object):
 
         return np.dot(_points, rotaion_matrix) + center
 
+    def flip_lr(self, marks, width):
+        """Flip the marks in horizontal direction."""
+        marks[:, 0] = width - marks[:, 0]
+        
+        return marks
+
     def generate_heatmaps(self, norm_marks, map_size=(64, 64), sigma=3):
         """Generate heatmaps for all the marks."""
 

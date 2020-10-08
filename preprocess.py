@@ -84,3 +84,20 @@ def scale_randomly(image, marks, output_size=(256, 256), scale_range=(0, 1)):
     marks /= ((img_width - margin * 2) * output_size[0])
 
     return image_resized, marks
+
+
+def flip_randomly(image, marks, probability=0.5):
+    """Flip the image in horizontal direction.
+
+    Args:
+        image: input image.
+        marks: face marks.
+
+    Returns:
+        flipped image.
+    """
+    if np.random.random_sample() < probability:
+        image = cv2.flip(image, 1)
+        marks = MO.flip_lr(marks, image.shape[0])
+
+    return image, marks

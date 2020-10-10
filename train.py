@@ -72,7 +72,7 @@ class WFLWSequence(keras.utils.Sequence):
             # Generate heatmaps.
             _, img_width, _ = image.shape
             heatmaps = generate_heatmaps(marks, img_width, (64, 64))
-            heatmaps = np.rollaxis(heatmaps, 0, 2)
+            heatmaps = np.rollaxis(heatmaps, 0, 3)
 
             # Generate the batch data.
             batch_x.append(image_float)

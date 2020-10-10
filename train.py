@@ -3,11 +3,15 @@
 import os
 from argparse import ArgumentParser
 
+import cv2
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
+from fmd.universal import Universal
 from network import HRNetV2
-from preprocess import normalize
+from preprocess import (flip_randomly, generate_heatmaps, normalize,
+                        rotate_randomly, scale_randomly)
 
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=60, type=int,
@@ -21,48 +25,60 @@ parser.add_argument("--eval_only", default=False, type=bool,
 args = parser.parse_args()
 
 
-def parse_dataset(dataset):
-    # Create a dictionary describing the features. This dict should be
-    # consistent with the one used while generating the record file.
-    feature_description = {
-        'image/height': tf.io.FixedLenFeature([], tf.int64),
-        'image/width': tf.io.FixedLenFeature([], tf.int64),
-        'image/depth': tf.io.FixedLenFeature([], tf.int64),
-        'image/filename': tf.io.FixedLenFeature([], tf.string),
-        'image/encoded': tf.io.FixedLenFeature([], tf.string),
-        'label/marks': tf.io.FixedLenFeature([], tf.string),
-        'label/n_marks': tf.io.FixedLenFeature([], tf.int64),
-        'heatmap/map': tf.io.FixedLenFeature([], tf.string),
-        'heatmap/height': tf.io.FixedLenFeature([], tf.int64),
-        'heatmap/width': tf.io.FixedLenFeature([], tf.int64),
-        'heatmap/depth': tf.io.FixedLenFeature([], tf.int64)
-    }
+class WFLWSequence(keras.utils.Sequence):
+    def __init__(self, data_dir, name, batch_size):
+        self.batch_size = batch_size
+        self.filenames = []
+        self.marks = []
 
-    def _parse_function(example_proto):
-        # Parse the input tf.Example proto using the dictionary above.
-        example = tf.io.parse_single_example(
-            example_proto, feature_description)
+        # Initialize the dataset with files.
+        dataset = Universal(name)
+        dataset.populate_dataset(data_dir, key_marks_indices=[
+            60, 64, 68, 72, 76, 82])
 
-        image_decoded = tf.image.decode_jpeg(
-            example['image/encoded'], channels=3)
-        image_decoded = tf.cast(image_decoded, tf.float32)
-        # TODO: infer the tensor shape automatically
-        image_decoded = tf.reshape(image_decoded, [256, 256, 3])
+        for sample in dataset:
+            self.filenames.append(sample.image_file)
+            self.marks.append(sample.marks)
 
-        # Follow the official preprocess implementation.
-        image_decoded = normalize(image_decoded)
+    def __len__(self):
+        return int(np.ceil(len(self.filenames) / float(self.batch_size)))
 
-        heatmaps = tf.io.parse_tensor(example['heatmap/map'], tf.double)
-        heatmaps = tf.cast(heatmaps, tf.float32)
-        # TODO: infer the tensor shape automatically
-        heatmaps = tf.reshape(heatmaps, (98, 64, 64))
-        heatmaps = tf.transpose(heatmaps, [2, 1, 0])
+    def __getitem__(self, index):
+        batch_files = self.filenames[index *
+                                     self.batch_size:(index + 1) * self.batch_size]
+        batch_marks = self.marks[index *
+                                 self.batch_size:(index + 1) * self.batch_size]
 
-        return image_decoded, heatmaps
+        batch_x = []
+        batch_y = []
 
-    parsed_dataset = dataset.map(_parse_function,
-                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    return parsed_dataset
+        for filename, marks in zip(batch_files, batch_marks):
+            # Follow the official preprocess implementation.
+            image = cv2.imread(filename)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            # Rotate the image randomly.
+            image, marks = rotate_randomly(image, marks, (-30, 30))
+
+            # Scale the image randomly.
+            image, marks = scale_randomly(image, marks)
+
+            # Flip the image randomly.
+            image, marks = flip_randomly(image, marks)
+
+            # Normalize the image.
+            image_float = normalize(image.astype(float))
+
+            # Generate heatmaps.
+            _, img_width, _ = image.shape
+            heatmaps = generate_heatmaps(marks, img_width, (64, 64))
+            heatmaps = np.rollaxis(heatmaps, 0, 2)
+
+            # Generate the batch data.
+            batch_x.append(image_float)
+            batch_y.append(heatmaps)
+
+        return np.array(batch_x), np.array(batch_y)
 
 
 class EpochBasedLearningRateSchedule(keras.callbacks.Callback):
@@ -124,9 +140,8 @@ if __name__ == "__main__":
                   metrics=[keras.metrics.MeanSquaredError()])
 
     # Construct dataset for validation & testing.
-    record_file_test = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_test.record"
-    dataset_val = parse_dataset(tf.data.TFRecordDataset(record_file_test))
-    dataset_val = dataset_val.batch(args.batch_size)
+    test_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
+    dataset_val = WFLWSequence(test_files_dir, "wflw_test", args.batch_size)
 
     # Train the model.
     if not (args.eval_only or args.export_only):
@@ -159,11 +174,9 @@ if __name__ == "__main__":
         callbacks = [callback_checkpoint, callback_tensorboard, callback_lr]
 
         # Construct training datasets.
-        record_file_train = "/home/robin/data/facial-marks/wflw/tfrecord/wflw_train.record"
-        dataset_train = parse_dataset(
-            tf.data.TFRecordDataset(record_file_train))
-        dataset_train = dataset_train.shuffle(
-            1024).batch(batch_size).prefetch(2)
+        train_files_dir = "/home/robin/data/facial-marks/wflw_cropped/train"
+        dataset_train = WFLWSequence(
+            train_files_dir, "wflw_train", args.batch_size)
 
         # Start training loop.
         model.fit(dataset_train, validation_data=dataset_val,

@@ -1,7 +1,6 @@
 """This module provides commonly used image preprocessing functions."""
 import cv2
 import numpy as np
-import tensorflow as tf
 
 from mark_operator import MarkOperator
 
@@ -18,8 +17,8 @@ def normalize(inputs):
     Returns:
         a normalized image.
     """
-    img_mean = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)
-    img_std = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)
+    img_mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+    img_std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
     # Normalization
     return ((inputs / 255.0) - img_mean)/img_std

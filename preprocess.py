@@ -99,10 +99,18 @@ def flip_randomly(image, marks, probability=0.5):
         marks: face marks.
 
     Returns:
-        flipped image.
+        flipped image, flipped marks
     """
     if np.random.random_sample() < probability:
         image = cv2.flip(image, 1)
         marks = MO.flip_lr(marks, image.shape[0])
 
     return image, marks
+
+
+def generate_heatmaps(marks, img_size, map_size):
+    """A convenient function to generate heatmaps from marks."""
+    marks_norm = marks / img_size
+    heatmaps = MO.generate_heatmaps(marks_norm, map_size=map_size)
+
+    return heatmaps

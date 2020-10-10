@@ -25,60 +25,36 @@ parser.add_argument("--eval_only", default=False, type=bool,
 args = parser.parse_args()
 
 
-class WFLWSequence(keras.utils.Sequence):
-    def __init__(self, data_dir, name, batch_size):
-        self.batch_size = batch_size
-        self.filenames = []
-        self.marks = []
+def generate_wflw_data(data_dir, name):
 
-        # Initialize the dataset with files.
-        dataset = Universal(name)
-        dataset.populate_dataset(data_dir, key_marks_indices=[
-            60, 64, 68, 72, 76, 82])
+    # Initialize the dataset with files.
+    dataset = Universal(name.decode("utf-8"))
+    dataset.populate_dataset(data_dir.decode("utf-8"), key_marks_indices=[
+        60, 64, 68, 72, 76, 82])
 
-        for sample in dataset:
-            self.filenames.append(sample.image_file)
-            self.marks.append(sample.marks)
+    for sample in dataset:
+        # Follow the official preprocess implementation.
+        image = sample.read_image("RGB")
+        marks = sample.marks
 
-    def __len__(self):
-        return int(np.ceil(len(self.filenames) / float(self.batch_size)))
+        # Rotate the image randomly.
+        image, marks = rotate_randomly(image, marks, (-30, 30))
 
-    def __getitem__(self, index):
-        batch_files = self.filenames[index *
-                                     self.batch_size:(index + 1) * self.batch_size]
-        batch_marks = self.marks[index *
-                                 self.batch_size:(index + 1) * self.batch_size]
+        # Scale the image randomly.
+        image, marks = scale_randomly(image, marks)
 
-        batch_x = []
-        batch_y = []
+        # Flip the image randomly.
+        image, marks = flip_randomly(image, marks)
 
-        for filename, marks in zip(batch_files, batch_marks):
-            # Follow the official preprocess implementation.
-            image = cv2.imread(filename)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # Normalize the image.
+        image_float = normalize(image.astype(float))
 
-            # Rotate the image randomly.
-            image, marks = rotate_randomly(image, marks, (-30, 30))
+        # Generate heatmaps.
+        _, img_width, _ = image.shape
+        heatmaps = generate_heatmaps(marks, img_width, (64, 64))
+        heatmaps = np.rollaxis(heatmaps, 0, 3)
 
-            # Scale the image randomly.
-            image, marks = scale_randomly(image, marks)
-
-            # Flip the image randomly.
-            image, marks = flip_randomly(image, marks)
-
-            # Normalize the image.
-            image_float = normalize(image.astype(float))
-
-            # Generate heatmaps.
-            _, img_width, _ = image.shape
-            heatmaps = generate_heatmaps(marks, img_width, (64, 64))
-            heatmaps = np.rollaxis(heatmaps, 0, 3)
-
-            # Generate the batch data.
-            batch_x.append(image_float)
-            batch_y.append(heatmaps)
-
-        return np.array(batch_x), np.array(batch_y)
+        yield image_float, heatmaps
 
 
 class EpochBasedLearningRateSchedule(keras.callbacks.Callback):
@@ -141,7 +117,12 @@ if __name__ == "__main__":
 
     # Construct dataset for validation & testing.
     test_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
-    dataset_val = WFLWSequence(test_files_dir, "wflw_test", args.batch_size)
+    dataset_val = tf.data.Dataset.from_generator(
+        generate_wflw_data,
+        output_types=(tf.float32, tf.float32),
+        output_shapes=((256, 256, 3), (64, 64, 98)),
+        args=[test_files_dir, "wflw_test"])
+    dataset_val = dataset_val.batch(args.batch_size)
 
     # Train the model.
     if not (args.eval_only or args.export_only):
@@ -175,8 +156,12 @@ if __name__ == "__main__":
 
         # Construct training datasets.
         train_files_dir = "/home/robin/data/facial-marks/wflw_cropped/train"
-        dataset_train = WFLWSequence(
-            train_files_dir, "wflw_train", args.batch_size)
+        dataset_train = tf.data.Dataset.from_generator(
+            generate_wflw_data,
+            output_types=(tf.float32, tf.float32),
+            output_shapes=((256, 256, 3), (64, 64, 98)),
+            args=[train_files_dir, "wflw_train"])
+        dataset_train = dataset_train.batch(args.batch_size)
 
         # Start training loop.
         model.fit(dataset_train, validation_data=dataset_val,

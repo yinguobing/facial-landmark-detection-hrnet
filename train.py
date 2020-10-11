@@ -84,6 +84,8 @@ if __name__ == "__main__":
     dataset_val = make_wflw_dataset(test_files_dir, "wflw_test",
                                     batch_size=args.batch_size,
                                     mode="sequence")
+    if not isinstance(dataset_val, keras.utils.Sequence):
+        dataset_val.batch(args.batch_size)
 
     # Train the model.
     if not (args.eval_only or args.export_only):
@@ -120,6 +122,8 @@ if __name__ == "__main__":
         dataset_train = make_wflw_dataset(train_files_dir, "wflw_train",
                                           batch_size=args.batch_size,
                                           mode="sequence")
+        if not isinstance(dataset_train, keras.utils.Sequence):
+            dataset_train.batch(args.batch_size)
 
         # Start training loop.
         model.fit(dataset_train, validation_data=dataset_val,

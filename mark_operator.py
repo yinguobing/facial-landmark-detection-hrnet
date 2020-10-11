@@ -79,15 +79,32 @@ class MarkOperator(object):
         """Flip the marks in horizontal direction."""
         marks[:, 0] = width - marks[:, 0]
 
+        # Reset the order of the marks. The HRNet authors had provided this
+        # information in the official repository.
+        mirrored_pairs = np.array([
+            [0,  32], [1,  31], [2,  30], [3,  29], [4,  28], [5,  27],
+            [6,  26], [7,  25], [8,  24], [9,  23], [10, 22], [11, 21],
+            [12, 20], [13, 19], [14, 18], [15, 17], [33, 46], [34, 45],
+            [35, 44], [36, 43], [37, 42], [38, 50], [39, 49], [40, 48],
+            [41, 47], [60, 72], [61, 71], [62, 70], [63, 69], [64, 68],
+            [65, 75], [66, 74], [67, 73], [55, 59], [56, 58], [76, 82],
+            [77, 81], [78, 80], [87, 83], [86, 84], [88, 92], [89, 91],
+            [95, 93], [96, 97]
+        ])
+
+        tmp = marks[mirrored_pairs[:, 0]]
+        marks[mirrored_pairs[:, 0]] = marks[mirrored_pairs[:, 1]]
+        marks[mirrored_pairs[:, 1]] = tmp
+
         return marks
 
     def generate_heatmaps(self, norm_marks, map_size=(64, 64), sigma=3):
         """Generate heatmaps for all the marks."""
 
         def _generate_heatmap(heatmap, point, sigma, label_type='Gaussian'):
-            """This function is borrowed from the official implementation. We 
-            will use the method whatever the HRNet authors used. But some 
-            variables are re-named to make it easier to read. Maybe someday I 
+            """This function is borrowed from the official implementation. We
+            will use the method whatever the HRNet authors used. But some
+            variables are re-named to make it easier to read. Maybe someday I
             will re-write this.
             """
             # Check that any part of the gaussian is in-bounds
@@ -122,7 +139,7 @@ class MarkOperator(object):
             y_map = max(0, ul[1]), min(br[1], heatmap.shape[0])
 
             heatmap[y_map[0]:y_map[1], x_map[0]:x_map[1]
-                    ] = heat[y_heat[0]:y_heat[1], x_heat[0]:x_heat[1]]
+                    ] = heat[y_heat[0]: y_heat[1], x_heat[0]: x_heat[1]]
 
             return heatmap
 

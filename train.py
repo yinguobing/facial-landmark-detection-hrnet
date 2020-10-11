@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 import tensorflow as tf
 from tensorflow import keras
 
-from dataset import generate_wflw_data
+from dataset import make_wflw_dataset
 from network import HRNetV2
 
 parser = ArgumentParser()
@@ -81,12 +81,9 @@ if __name__ == "__main__":
 
     # Construct dataset for validation & testing.
     test_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
-    dataset_val = tf.data.Dataset.from_generator(
-        generate_wflw_data,
-        output_types=(tf.float32, tf.float32),
-        output_shapes=((256, 256, 3), (64, 64, 98)),
-        args=[test_files_dir, "wflw_test"])
-    dataset_val = dataset_val.batch(args.batch_size)
+    dataset_val = make_wflw_dataset(test_files_dir, "wflw_test",
+                                    batch_size=args.batch_size,
+                                    mode="sequence")
 
     # Train the model.
     if not (args.eval_only or args.export_only):
@@ -120,12 +117,9 @@ if __name__ == "__main__":
 
         # Construct training datasets.
         train_files_dir = "/home/robin/data/facial-marks/wflw_cropped/train"
-        dataset_train = tf.data.Dataset.from_generator(
-            generate_wflw_data,
-            output_types=(tf.float32, tf.float32),
-            output_shapes=((256, 256, 3), (64, 64, 98)),
-            args=[train_files_dir, "wflw_train"])
-        dataset_train = dataset_train.batch(args.batch_size)
+        dataset_train = make_wflw_dataset(train_files_dir, "wflw_train",
+                                          batch_size=args.batch_size,
+                                          mode="sequence")
 
         # Start training loop.
         model.fit(dataset_train, validation_data=dataset_val,

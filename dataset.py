@@ -1,5 +1,7 @@
 """This module provides the training and testing datasets."""
+import cv2
 import numpy as np
+import tensorflow as tf
 
 from fmd.universal import Universal
 from preprocess import (flip_randomly, generate_heatmaps, normalize,
@@ -39,7 +41,7 @@ def generate_wflw_data(data_dir, name):
         yield image_float, heatmaps
 
 
-class WFLWSequence(keras.utils.Sequence):
+class WFLWSequence(tf.keras.utils.Sequence):
     """A Sequence implementation for WFLW dataset generation."""
 
     def __init__(self, data_dir, name, batch_size):
@@ -95,3 +97,26 @@ class WFLWSequence(keras.utils.Sequence):
             batch_y.append(heatmaps)
 
         return np.array(batch_x), np.array(batch_y)
+
+
+def make_wflw_dataset(data_dir, name, batch_size=None, mode="sequence"):
+    """Generate WFLW dataset from image and json files.
+
+    Args:
+        data_dir: the directory of the images and json files.
+        name: dataset name.
+        mode: keras Sequence or dataset from generator.
+
+    Returns:
+        a keras.utils.Sequence or a tf.data.dataset.
+    """
+    if mode == 'sequence':
+        dataset = WFLWSequence(data_dir, name, batch_size)
+    else:
+        dataset = tf.data.Dataset.from_generator(
+            generate_wflw_data,
+            output_types=(tf.float32, tf.float32),
+            output_shapes=((256, 256, 3), (64, 64, 98)),
+            args=[data_dir, "name"])
+
+    return dataset

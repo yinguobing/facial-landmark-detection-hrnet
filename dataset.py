@@ -32,7 +32,7 @@ def generate_wflw_data(data_dir, name, training):
             image, marks = flip_randomly(image, marks)
         else:
             # Scale the image to output size.
-            marks = marks / image.shape(0) * 256
+            marks = marks / image.shape[0] * 256
             image = cv2.resize(image, (256, 256))
 
         # Normalize the image.
@@ -92,7 +92,7 @@ class WFLWSequence(tf.keras.utils.Sequence):
                 image, marks = flip_randomly(image, marks)
             else:
                 # Scale the image to output size.
-                marks = marks / image.shape(0) * 256
+                marks = marks / image.shape[0] * 256
                 image = cv2.resize(image, (256, 256))
 
             # Normalize the image.

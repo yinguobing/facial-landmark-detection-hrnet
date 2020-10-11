@@ -3,15 +3,11 @@
 import os
 from argparse import ArgumentParser
 
-import cv2
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-from fmd.universal import Universal
+from dataset import generate_wflw_data
 from network import HRNetV2
-from preprocess import (flip_randomly, generate_heatmaps, normalize,
-                        rotate_randomly, scale_randomly)
 
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=60, type=int,
@@ -23,38 +19,6 @@ parser.add_argument("--export_only", default=False, type=bool,
 parser.add_argument("--eval_only", default=False, type=bool,
                     help="Evaluate the model without training.")
 args = parser.parse_args()
-
-
-def generate_wflw_data(data_dir, name):
-
-    # Initialize the dataset with files.
-    dataset = Universal(name.decode("utf-8"))
-    dataset.populate_dataset(data_dir.decode("utf-8"), key_marks_indices=[
-        60, 64, 68, 72, 76, 82])
-
-    for sample in dataset:
-        # Follow the official preprocess implementation.
-        image = sample.read_image("RGB")
-        marks = sample.marks
-
-        # Rotate the image randomly.
-        image, marks = rotate_randomly(image, marks, (-30, 30))
-
-        # Scale the image randomly.
-        image, marks = scale_randomly(image, marks)
-
-        # Flip the image randomly.
-        image, marks = flip_randomly(image, marks)
-
-        # Normalize the image.
-        image_float = normalize(image.astype(float))
-
-        # Generate heatmaps.
-        _, img_width, _ = image.shape
-        heatmaps = generate_heatmaps(marks, img_width, (64, 64))
-        heatmaps = np.rollaxis(heatmaps, 0, 3)
-
-        yield image_float, heatmaps
 
 
 class EpochBasedLearningRateSchedule(keras.callbacks.Callback):

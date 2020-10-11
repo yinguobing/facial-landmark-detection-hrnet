@@ -8,7 +8,7 @@ from preprocess import (flip_randomly, generate_heatmaps, normalize,
                         rotate_randomly, scale_randomly)
 
 
-def generate_wflw_data(data_dir, name):
+def generate_wflw_data(data_dir, name, training):
     """A generator function to make WFLW dataset"""
 
     # Initialize the dataset with files.
@@ -21,14 +21,19 @@ def generate_wflw_data(data_dir, name):
         image = sample.read_image("RGB")
         marks = sample.marks
 
-        # Rotate the image randomly.
-        image, marks = rotate_randomly(image, marks, (-30, 30))
+        if training:
+            # Rotate the image randomly.
+            image, marks = rotate_randomly(image, marks, (-30, 30))
 
-        # Scale the image randomly.
-        image, marks = scale_randomly(image, marks)
+            # Scale the image randomly.
+            image, marks = scale_randomly(image, marks)
 
-        # Flip the image randomly.
-        image, marks = flip_randomly(image, marks)
+            # Flip the image randomly.
+            image, marks = flip_randomly(image, marks)
+        else:
+            # Scale the image to output size.
+            marks = marks / image.shape(0) * 256
+            image = cv2.resize(image, (256, 256))
 
         # Normalize the image.
         image_float = normalize(image.astype(float))
@@ -44,7 +49,8 @@ def generate_wflw_data(data_dir, name):
 class WFLWSequence(tf.keras.utils.Sequence):
     """A Sequence implementation for WFLW dataset generation."""
 
-    def __init__(self, data_dir, name, batch_size):
+    def __init__(self, data_dir, name, training, batch_size):
+        self.training = training
         self.batch_size = batch_size
         self.filenames = []
         self.marks = []
@@ -75,14 +81,19 @@ class WFLWSequence(tf.keras.utils.Sequence):
             image = cv2.imread(filename)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-            # Rotate the image randomly.
-            image, marks = rotate_randomly(image, marks, (-30, 30))
+            if self.training:
+                # Rotate the image randomly.
+                image, marks = rotate_randomly(image, marks, (-30, 30))
 
-            # Scale the image randomly.
-            image, marks = scale_randomly(image, marks)
+                # Scale the image randomly.
+                image, marks = scale_randomly(image, marks)
 
-            # Flip the image randomly.
-            image, marks = flip_randomly(image, marks)
+                # Flip the image randomly.
+                image, marks = flip_randomly(image, marks)
+            else:
+                # Scale the image to output size.
+                marks = marks / image.shape(0) * 256
+                image = cv2.resize(image, (256, 256))
 
             # Normalize the image.
             image_float = normalize(image.astype(float))
@@ -99,7 +110,7 @@ class WFLWSequence(tf.keras.utils.Sequence):
         return np.array(batch_x), np.array(batch_y)
 
 
-def make_wflw_dataset(data_dir, name, batch_size=None, mode="sequence"):
+def make_wflw_dataset(data_dir, name, training=True, batch_size=None, mode="sequence"):
     """Generate WFLW dataset from image and json files.
 
     Args:
@@ -111,12 +122,12 @@ def make_wflw_dataset(data_dir, name, batch_size=None, mode="sequence"):
         a keras.utils.Sequence or a tf.data.dataset.
     """
     if mode == 'sequence':
-        dataset = WFLWSequence(data_dir, name, batch_size)
+        dataset = WFLWSequence(data_dir, name, training, batch_size)
     else:
         dataset = tf.data.Dataset.from_generator(
             generate_wflw_data,
             output_types=(tf.float32, tf.float32),
             output_shapes=((256, 256, 3), (64, 64, 98)),
-            args=[data_dir, "name"])
+            args=[data_dir, "name", training])
 
     return dataset

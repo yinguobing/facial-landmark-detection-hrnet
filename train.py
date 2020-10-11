@@ -82,6 +82,7 @@ if __name__ == "__main__":
     # Construct dataset for validation & testing.
     test_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
     dataset_val = make_wflw_dataset(test_files_dir, "wflw_test",
+                                    training=False,
                                     batch_size=args.batch_size,
                                     mode="sequence")
     if not isinstance(dataset_val, keras.utils.Sequence):
@@ -120,6 +121,7 @@ if __name__ == "__main__":
         # Construct training datasets.
         train_files_dir = "/home/robin/data/facial-marks/wflw_cropped/train"
         dataset_train = make_wflw_dataset(train_files_dir, "wflw_train",
+                                          training=True,
                                           batch_size=args.batch_size,
                                           mode="sequence")
         if not isinstance(dataset_train, keras.utils.Sequence):

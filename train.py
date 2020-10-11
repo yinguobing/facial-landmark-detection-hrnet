@@ -3,15 +3,11 @@
 import os
 from argparse import ArgumentParser
 
-import cv2
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-from fmd.universal import Universal
+from dataset import make_wflw_dataset
 from network import HRNetV2
-from preprocess import (flip_randomly, generate_heatmaps, normalize,
-                        rotate_randomly, scale_randomly)
 
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=60, type=int,
@@ -23,62 +19,6 @@ parser.add_argument("--export_only", default=False, type=bool,
 parser.add_argument("--eval_only", default=False, type=bool,
                     help="Evaluate the model without training.")
 args = parser.parse_args()
-
-
-class WFLWSequence(keras.utils.Sequence):
-    def __init__(self, data_dir, name, batch_size):
-        self.batch_size = batch_size
-        self.filenames = []
-        self.marks = []
-
-        # Initialize the dataset with files.
-        dataset = Universal(name)
-        dataset.populate_dataset(data_dir, key_marks_indices=[
-            60, 64, 68, 72, 76, 82])
-
-        for sample in dataset:
-            self.filenames.append(sample.image_file)
-            self.marks.append(sample.marks)
-
-    def __len__(self):
-        return int(np.ceil(len(self.filenames) / float(self.batch_size)))
-
-    def __getitem__(self, index):
-        batch_files = self.filenames[index *
-                                     self.batch_size:(index + 1) * self.batch_size]
-        batch_marks = self.marks[index *
-                                 self.batch_size:(index + 1) * self.batch_size]
-
-        batch_x = []
-        batch_y = []
-
-        for filename, marks in zip(batch_files, batch_marks):
-            # Follow the official preprocess implementation.
-            image = cv2.imread(filename)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-            # Rotate the image randomly.
-            image, marks = rotate_randomly(image, marks, (-30, 30))
-
-            # Scale the image randomly.
-            image, marks = scale_randomly(image, marks)
-
-            # Flip the image randomly.
-            image, marks = flip_randomly(image, marks)
-
-            # Normalize the image.
-            image_float = normalize(image.astype(float))
-
-            # Generate heatmaps.
-            _, img_width, _ = image.shape
-            heatmaps = generate_heatmaps(marks, img_width, (64, 64))
-            heatmaps = np.rollaxis(heatmaps, 0, 3)
-
-            # Generate the batch data.
-            batch_x.append(image_float)
-            batch_y.append(heatmaps)
-
-        return np.array(batch_x), np.array(batch_y)
 
 
 class EpochBasedLearningRateSchedule(keras.callbacks.Callback):
@@ -141,7 +81,12 @@ if __name__ == "__main__":
 
     # Construct dataset for validation & testing.
     test_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
-    dataset_val = WFLWSequence(test_files_dir, "wflw_test", args.batch_size)
+    dataset_val = make_wflw_dataset(test_files_dir, "wflw_test",
+                                    training=False,
+                                    batch_size=args.batch_size,
+                                    mode="sequence")
+    if not isinstance(dataset_val, keras.utils.Sequence):
+        dataset_val.batch(args.batch_size)
 
     # Train the model.
     if not (args.eval_only or args.export_only):
@@ -175,8 +120,12 @@ if __name__ == "__main__":
 
         # Construct training datasets.
         train_files_dir = "/home/robin/data/facial-marks/wflw_cropped/train"
-        dataset_train = WFLWSequence(
-            train_files_dir, "wflw_train", args.batch_size)
+        dataset_train = make_wflw_dataset(train_files_dir, "wflw_train",
+                                          training=True,
+                                          batch_size=args.batch_size,
+                                          mode="sequence")
+        if not isinstance(dataset_train, keras.utils.Sequence):
+            dataset_train.batch(args.batch_size)
 
         # Start training loop.
         model.fit(dataset_train, validation_data=dataset_val,

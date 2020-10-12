@@ -12,6 +12,8 @@ from network import HRNetV2
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=60, type=int,
                     help="Number of training epochs.")
+parser.add_argument("--initial_epoch", default=0, type=int,
+                    help="From which epochs to resume training.")
 parser.add_argument("--batch_size", default=32, type=int,
                     help="Training batch size.")
 parser.add_argument("--export_only", default=False, type=bool,
@@ -129,7 +131,8 @@ if __name__ == "__main__":
 
         # Start training loop.
         model.fit(dataset_train, validation_data=dataset_val,
-                  epochs=epochs, callbacks=callbacks, initial_epoch=0)
+                  epochs=epochs, callbacks=callbacks,
+                  initial_epoch=args.initial_epoch)
 
     # Evaluate the model.
     if not args.export_only:

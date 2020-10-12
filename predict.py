@@ -8,7 +8,7 @@ from preprocess import normalize
 
 def top_k_indices(x, k):
     """Returns the k largest element indices from a numpy array. You can find
-     the original code here: https://stackoverflow.com/q/6910641
+    the original code here: https://stackoverflow.com/q/6910641
     """
     flat = x.flatten()
     indices = np.argpartition(flat, -k)[-k:]
@@ -19,9 +19,9 @@ def top_k_indices(x, k):
 def get_peak_location(heatmap, image_size=(256, 256)):
     """Return the interpreted location of the top 2 predictions."""
     h_height, h_width = heatmap.shape
-    [x1, x2], [y1, y2] = top_k_indices(heatmap, 2)
-    x = (x1 + (x2 - x1)/4) / h_height * image_size[0]
-    y = (y1 + (y2 - y1)/4) / h_width * image_size[1]
+    [y1, y2], [x1, x2] = top_k_indices(heatmap, 2)
+    x = (x1 + (x2 - x1)/4) / h_width * image_size[0]
+    y = (y1 + (y2 - y1)/4) / h_height * image_size[1]
 
     return int(x), int(y)
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     heatmaps = model.predict(tf.expand_dims(img_input, 0))[0]
 
     # Parse the heatmaps to get mark locations.
-    heatmaps = np.rollaxis(heatmaps, 2)
+    heatmaps = np.transpose(heatmaps, (2, 0, 1))
     for heatmap in heatmaps:
         mark = get_peak_location(heatmap)
         cv2.circle(img, mark, 2, (0, 255, 0), -1)

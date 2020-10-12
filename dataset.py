@@ -176,8 +176,6 @@ if __name__ == "__main__":
                                          training=True,
                                          batch_size=batch_size,
                                          mode="sequence")
-    if not isinstance(dataset_sequence, tf.keras.utils.Sequence):
-        dataset_sequence.batch(batch_size)
 
     # Build dataset from generator.
     dataset_from_generator = make_wflw_dataset(data_dir, "wflw_generator",
@@ -185,14 +183,14 @@ if __name__ == "__main__":
                                                batch_size=batch_size,
                                                mode="generator")
     if not isinstance(dataset_from_generator, tf.keras.utils.Sequence):
-        dataset_from_generator.batch(batch_size)
+        dataset_from_generator = dataset_from_generator.batch(batch_size)
 
     for sample_s, sample_g in zip(dataset_sequence, dataset_from_generator):
         img_s, heatmap_s = sample_s
         img_g, heatmap_g = sample_g
 
         img_s, heatmaps_s = _parse_heatmaps(img_s[0], heatmap_s[0])
-        img_g, heatmaps_g = _parse_heatmaps(img_g.numpy(), heatmap_g.numpy())
+        img_g, heatmaps_g = _parse_heatmaps(img_g[0].numpy(), heatmap_g[0].numpy())
 
         # Show the result in windows.
         cv2.imshow("images", np.hstack((img_s, img_g)))

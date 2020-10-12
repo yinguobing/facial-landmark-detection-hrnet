@@ -6,12 +6,8 @@ A TensorFlow implementation of HRNet for facial landmark detection.
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 ### Prerequisites
-For training:
 
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-v2.3-brightgreen)
-
-For inference:
-
 ![OpenCV](https://img.shields.io/badge/OpenCV-v4.3-brightgreen)
 ![Numpy](https://img.shields.io/badge/Numpy-v1.17-brightgreen)
 
@@ -24,13 +20,16 @@ git clone https://github.com/yinguobing/facial-landmark-detection-hrnet.git
 ```
 
 #### Generate the training data
-There are multiple public facial mark datasets available which can be used to generate training heatmaps we need. You can do this yourself or, use this repo:
+There are multiple public facial mark datasets available which can be used to generate training heatmaps we need. For this training process the images will be augmented. The first step is transforming  the dataset into a more uniform distribution that is easier to process. You can do this yourself or, use this repo:
 
 ```shell
 # From your favorite development directory
 git clone https://github.com/yinguobing/face-mesh-generator.git
+
+# Checkout the desired branch
+git checkout features/export_dataset
 ```
-Use the module `generate_heatmap_dataset.py` to generate training data. Popular public datasets like IBUG, 300-W, WFLW are supported. Checkout the full list here: [facial-landmark-dataset](https://github.com/yinguobing/facial-landmark-dataset).
+Use the module `generate_mesh_dataset.py` to generate training data. Popular public datasets like IBUG, 300-W, WFLW are supported. Checkout the full list here: [facial-landmark-dataset](https://github.com/yinguobing/facial-landmark-dataset).
 
 
 ## Training
@@ -42,19 +41,12 @@ These files do not change frequently so set them in the source code. Take WFLW a
 ```python
 # In module `train.py`
 # Training data.
-record_file_train = "/path/to/wflw_train.record"
+train_files_dir = "/path/to/wflw_train"
 
 # Validation data.
-record_file_test = "/path/to/wflw_test.record"
+test_files_dir = "/path/to/wflw_test"
 ```
 
-Also make sure the image size and heatmap size are in accordance with the dataset.
-
-```python
-# In _parse_function()
-image_decoded = tf.reshape(image_decoded, [256, 256, 3])
-heatmaps = tf.reshape(heatmaps, (98, 64, 64))
-```
 ### Construct the model
 The HRNet architecture is flexible. Custom the model if needed.
 

@@ -123,11 +123,80 @@ def make_wflw_dataset(data_dir, name, training=True, batch_size=None, mode="sequ
     """
     if mode == 'sequence':
         dataset = WFLWSequence(data_dir, name, training, batch_size)
+        print("Dataset of sequence made.")
     else:
         dataset = tf.data.Dataset.from_generator(
             generate_wflw_data,
             output_types=(tf.float32, tf.float32),
             output_shapes=((256, 256, 3), (64, 64, 98)),
             args=[data_dir, "name", training])
-
+        print("Dataset from generator made.")
     return dataset
+
+
+if __name__ == "__main__":
+    def top_k_indices(x, k):
+        """Returns the k largest element indices from a numpy array. You can find
+        the original code here: https://stackoverflow.com/q/6910641
+        """
+        flat = x.flatten()
+        indices = np.argpartition(flat, -k)[-k:]
+        indices = indices[np.argsort(-flat[indices])]
+        return np.unravel_index(indices, x.shape)
+
+    def get_peak_location(heatmap, image_size=(256, 256)):
+        """Return the interpreted location of the top 2 predictions."""
+        h_height, h_width = heatmap.shape
+        [y1, y2], [x1, x2] = top_k_indices(heatmap, 2)
+        x = (x1 + (x2 - x1)/4) / h_width * image_size[0]
+        y = (y1 + (y2 - y1)/4) / h_height * image_size[1]
+
+        return int(x), int(y)
+
+    def _parse_heatmaps(img, heatmaps):
+        # Parse the heatmaps to get mark locations.
+        heatmaps = np.transpose(heatmaps, (2, 0, 1))
+        for heatmap in heatmaps:
+            mark = get_peak_location(heatmap)
+            cv2.circle(img, mark, 2, (0, 255, 0), -1)
+
+        # Show individual heatmaps stacked.
+        heatmap_idvs = np.hstack(heatmaps[:8])
+        for row in range(1, 12, 1):
+            heatmap_idvs = np.vstack(
+                [heatmap_idvs, np.hstack(heatmaps[row:row+8])])
+
+        return img, heatmap_idvs
+
+    data_dir = "/home/robin/data/facial-marks/wflw_cropped/train"
+    batch_size = 1
+
+    # Build a sequence dataset.
+    dataset_sequence = make_wflw_dataset(data_dir, "wflw_sequence",
+                                         training=True,
+                                         batch_size=batch_size,
+                                         mode="sequence")
+    if not isinstance(dataset_sequence, tf.keras.utils.Sequence):
+        dataset_sequence.batch(batch_size)
+
+    # Build dataset from generator.
+    dataset_from_generator = make_wflw_dataset(data_dir, "wflw_generator",
+                                               training=True,
+                                               batch_size=batch_size,
+                                               mode="generator")
+    if not isinstance(dataset_from_generator, tf.keras.utils.Sequence):
+        dataset_from_generator.batch(batch_size)
+
+    for sample_s, sample_g in zip(dataset_sequence, dataset_from_generator):
+        img_s, heatmap_s = sample_s
+        img_g, heatmap_g = sample_g
+
+        img_s, heatmaps_s = _parse_heatmaps(img_s[0], heatmap_s[0])
+        img_g, heatmaps_g = _parse_heatmaps(img_g.numpy(), heatmap_g.numpy())
+
+        # Show the result in windows.
+        cv2.imshow("images", np.hstack((img_s, img_g)))
+        cv2.imshow("heatmaps", np.hstack((heatmaps_s, heatmaps_g)))
+
+        if cv2.waitKey() == 27:
+            break

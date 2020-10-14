@@ -1,6 +1,10 @@
 # facial-landmark-detection-hrnet
 A TensorFlow implementation of HRNet for facial landmark detection.
 
+![ms_marvel](./doc/../docs/ms_marvel.gif)
+
+Watch this demo video: [HRNet Facial Landmark Detection (bilibili)](https://www.bilibili.com/video/BV1Vy4y1C79p/).
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.

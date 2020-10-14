@@ -22,12 +22,12 @@ def get_peak_location(heatmap, image_size=(256, 256)):
     return int(x), int(y)
 
 
-def parse_heatmaps(heatmaps):
+def parse_heatmaps(heatmaps, image_size):
     # Parse the heatmaps to get mark locations.
     marks = []
     heatmaps = np.transpose(heatmaps, (2, 0, 1))
     for heatmap in heatmaps:
-        marks.append(get_peak_location(heatmap))
+        marks.append(get_peak_location(heatmap, image_size))
 
     # Show individual heatmaps stacked.
     heatmap_grid = np.hstack(heatmaps[:8])

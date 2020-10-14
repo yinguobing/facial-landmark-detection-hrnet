@@ -77,12 +77,12 @@ tensorboard --logdir /path/to//facial-landmark-detection-hrnet/log
 
 ```
 ## Evaluation
-Evaluation on validation datasets will be performed automatically after training. But you can perform evaluation without training like this:
+A quick evaluation on validation datasets will be performed automatically after training. For a full evaluation, please run the `evaluate.py` file. The NME value will be printed after evaluation.
 
 ```
-python3 train.py --eval_only=True
+python3 evaluate.py
 ```
-Do not forget setting the validation dataset.
+Do not forget setting the evaluation dataset.
 
 ## Export for inference
 Exported model will be saved in `saved_model` format in directory `./exported`.

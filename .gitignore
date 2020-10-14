@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# TensorFlow training files
+log
+checkpoints
+exported
+tflite

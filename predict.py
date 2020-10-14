@@ -12,6 +12,8 @@ parser.add_argument("--video", type=str, default=None,
                     help="Video file to be processed.")
 parser.add_argument("--cam", type=int, default=None,
                     help="The webcam index.")
+parser.add_argument("--write_video", type=bool, default=False,
+                    help="Write output video.")
 args = parser.parse_args()
 
 
@@ -195,6 +197,13 @@ if __name__ == "__main__":
     cap = cv2.VideoCapture(video_src)
     if video_src == 0:
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    _, sample_frame = cap.read()
+
+    # Video output by video writer.
+    if args.write_video:
+        height, width = sample_frame.shape[:2]
+        video_writer = cv2.VideoWriter(
+            'output.avi', cv2.VideoWriter_fourcc(*'x264'), 30, (width, height))
 
     # Construct a face detector.
     face_detector = FaceDetector()
@@ -245,5 +254,10 @@ if __name__ == "__main__":
 
         # Show the result in windows.
         cv2.imshow('image', frame)
-        if cv2.waitKey(27) == 27:
+
+        # Write video file.
+        if args.write_video:
+            video_writer.write(frame)
+
+        if cv2.waitKey(1) == 27:
             break

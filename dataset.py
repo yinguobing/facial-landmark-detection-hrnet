@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from fmd.universal import Universal
-from preprocess import (flip_randomly, generate_heatmaps, normalize,
+from preprocessing import (flip_randomly, generate_heatmaps, normalize,
                         rotate_randomly, scale_randomly)
 
 
@@ -17,7 +17,7 @@ def generate_wflw_data(data_dir, name, training):
         60, 64, 68, 72, 76, 82])
 
     for sample in dataset:
-        # Follow the official preprocess implementation.
+        # Follow the official preprocessing implementation.
         image = sample.read_image("RGB")
         marks = sample.marks
 
@@ -77,7 +77,7 @@ class WFLWSequence(tf.keras.utils.Sequence):
         batch_y = []
 
         for filename, marks in zip(batch_files, batch_marks):
-            # Follow the official preprocess implementation.
+            # Follow the official preprocessing implementation.
             image = cv2.imread(filename)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 

@@ -10,8 +10,6 @@ from mark_operator import MarkOperator
 from postprocessing import parse_heatmaps
 from preprocessing import normalize, crop_face
 
-MO = MarkOperator()
-
 
 def compute_nme(prediction, ground_truth):
     """This function is based on the official HRNet implementation."""

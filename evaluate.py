@@ -7,64 +7,10 @@ from tqdm import tqdm
 
 import fmd
 from mark_operator import MarkOperator
-from preprocessing import normalize
 from postprocessing import parse_heatmaps
+from preprocessing import normalize, crop_face
 
 MO = MarkOperator()
-
-
-def crop_face(image, marks, scale=1.8, shift_ratios=(0, 0)):
-    """Crop the face area from the input image.
-
-    Args:
-        image: input image.
-        marks: the facial marks of the face to be cropped.
-        scale: how much to scale the face box.
-        shift_ratios: shift the face box to (right, down) by facebox size * ratios
-
-    Returns:
-        Cropped image, new marks, padding_width and bounding box.
-    """
-    # How large the bounding box is?
-    x_min, y_min, _ = np.amin(marks, 0)
-    x_max, y_max, _ = np.amax(marks, 0)
-    side_length = max((x_max - x_min, y_max - y_min)) * scale
-
-    # Where is the center point of the bounding box?
-    x_center = (x_min + x_max) / 2
-    y_center = (y_min + y_max) / 2
-
-    # Face box is scaled, get the new corners, shifted.
-    img_height, img_width, _ = image.shape
-    x_shift, y_shift = np.array(shift_ratios) * side_length
-
-    x_start = int(x_center - side_length / 2 + x_shift)
-    y_start = int(y_center - side_length / 2 + y_shift)
-    x_end = int(x_center + side_length / 2 + x_shift)
-    y_end = int(y_center + side_length / 2 + y_shift)
-
-    # In case the new bbox is out of image bounding.
-    border_width = 0
-    border_x = min(x_start, y_start)
-    border_y = max(x_end - img_width, y_end - img_height)
-    if border_x < 0 or border_y > 0:
-        border_width = max(abs(border_x), abs(border_y))
-        x_start += border_width
-        y_start += border_width
-        x_end += border_width
-        y_end += border_width
-        image_with_border = cv2.copyMakeBorder(image, border_width,
-                                               border_width,
-                                               border_width,
-                                               border_width,
-                                               cv2.BORDER_CONSTANT,
-                                               value=[0, 0, 0])
-        image_cropped = image_with_border[y_start:y_end,
-                                          x_start:x_end]
-    else:
-        image_cropped = image[y_start:y_end, x_start:x_end]
-
-    return image_cropped, border_width, (x_start, y_start, x_end, y_end)
 
 
 def compute_nme(prediction, ground_truth):
@@ -77,13 +23,14 @@ def compute_nme(prediction, ground_truth):
     return rmse
 
 
-def evaluate(dataset: fmd.mark_dataset.dataset):
+def evaluate(dataset: fmd.mark_dataset.dataset, model):
     """Evaluate the model on the dataset. The evaluation method should be the 
-    same with the official code."""
+    same with the official code.
 
-    # Load the target model.
-    model = tf.keras.models.load_model("./exported")
-
+    Args:
+        dataset: a FMD dataset
+        model: any model having `predict` method.
+    """
     # For NME
     nme_count = 0
     nme_sum = 0
@@ -151,4 +98,7 @@ if __name__ == "__main__":
     wflw_dir = "/home/robin/data/facial-marks/wflw/WFLW_images"
     ds_wflw = fmd.wflw.WFLW(False, "wflw_test")
     ds_wflw.populate_dataset(wflw_dir)
-    evaluate(ds_wflw)
+
+    # Evaluate with FP32 model.
+    model = tf.keras.models.load_model("./exported")
+    evaluate(ds_wflw, model)

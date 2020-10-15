@@ -93,6 +93,28 @@ python3 train.py --export_only=True
 ## Inference
 Check out module `predict.py` for details.
 
+## Optimization
+Optimize the model so it can run on mobile, embedded, and IoT devices. TensorFlow supports post-training quantization, quantization aware training, pruning, and clustering.
+
+### Post training quantization
+There are multiple means for post training quantization: dynamic range, integer only, float16. To quantize the model, run:
+```bash
+python3 quantization.py
+```
+Quantized tflite file will be found in the `optimized` directory.
+
+### Quantization aware training
+
+> Coming soon
+
+### Pruning
+
+> Coming soon
+
+### Clustering
+
+> Coming soon
+
 ## Authors
 Yin Guobing (尹国冰) - yinguobing
 

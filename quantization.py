@@ -3,7 +3,6 @@ import numpy as np
 import tensorflow as tf
 
 import fmd
-from evaluate import crop_face
 from mark_operator import MarkOperator
 from preprocessing import crop_face, normalize
 
@@ -80,7 +79,7 @@ def quantize(saved_model, mode=None, representative_dataset=None):
     return tflite_model
 
 
-class TFLitePredictor(object):
+class TFLiteModelPredictor(object):
     """A light weight class for TFLite model prediction."""
 
     def __init__(self, model_path):

@@ -6,9 +6,9 @@ import tensorflow as tf
 from tqdm import tqdm
 
 import fmd
-from mark_operator import MarkOperator
 from postprocessing import parse_heatmaps
-from preprocessing import normalize, crop_face
+from preprocessing import crop_face, normalize
+from quantization import TFLiteModelPredictor
 
 
 def compute_nme(prediction, ground_truth):
@@ -64,6 +64,7 @@ def evaluate(dataset: fmd.mark_dataset.dataset, model):
 
         # Compute NME.
         nme_temp = compute_nme(marks_prediction, marks[:, :2])
+
         if nme_temp > 0.08:
             count_failure_008 += 1
         if nme_temp > 0.10:
@@ -86,17 +87,27 @@ def evaluate(dataset: fmd.mark_dataset.dataset, model):
     failure_008_rate = count_failure_008 / nme_count
     failure_010_rate = count_failure_010 / nme_count
 
-    msg = 'Test Results: nme:{:.4f} \n[008]:{:.4f} ' \
-          '\n[010]:{:.4f}'.format(nme, failure_008_rate, failure_010_rate)
-    print(msg)
+    msg = "NME:{:.4f}, [008]:{:.4f}, [010]:{:.4f}".format(
+        nme, failure_008_rate, failure_010_rate)
+
+    return msg
 
 
-if __name__ == "__main__":
-    # WFLW
+def make_dataset():
     wflw_dir = "/home/robin/data/facial-marks/wflw/WFLW_images"
     ds_wflw = fmd.wflw.WFLW(False, "wflw_test")
     ds_wflw.populate_dataset(wflw_dir)
 
+    return ds_wflw
+
+
+if __name__ == "__main__":
+
     # Evaluate with FP32 model.
     model = tf.keras.models.load_model("./exported")
-    evaluate(ds_wflw, model)
+    print("FP32: ", evaluate(make_dataset(), model))
+
+    # Evaluate with FP16 model.
+    model_qdr = TFLiteModelPredictor(
+        "./optimized/hrnet_quant_fp16.tflite")
+    print("FP16 quantized:", evaluate(make_dataset(), model_qdr))

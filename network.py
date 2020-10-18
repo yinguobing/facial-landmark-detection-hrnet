@@ -77,26 +77,20 @@ class HRNetTail(layers.Layer):
         return config
 
 
-class HRNetV2(Model):
+def HRNetV2(width=18, output_channels=98):
+    last_stage_width = sum([width * pow(2, n) for n in range(4)])
 
-    def __init__(self, width=18, output_channels=98, **kwargs):
-        super(HRNetV2, self).__init__(**kwargs)
+    inputs = keras.Input((256, 256, 3))
+    x = HRNetStem(64)(inputs)
+    x = HRNetBody(width)(x)
+    outputs = HRNetTail(input_channels=last_stage_width,
+                        output_channels=output_channels)(x)
 
-        self.stem = HRNetStem(64)
-        self.body = HRNetBody(width)
-        last_stage_width = sum([width * pow(2, n) for n in range(4)])
-        self.tail = HRNetTail(input_channels=last_stage_width,
-                              output_channels=output_channels)
+    model = keras.Model(inputs=inputs, outputs=outputs, name="hrnetv2")
 
-    def call(self, inputs):
-        x = self.stem(inputs)
-        x = self.body(x)
-        x = self.tail(x)
-
-        return x
+    return model
 
 
 if __name__ == "__main__":
     model = HRNetV2(18)
-    model(keras.Input((256, 256, 3)))
     model.summary()

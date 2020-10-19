@@ -1,10 +1,12 @@
 import tensorflow as tf
+import tensorflow_model_optimization as tfmot
 from tensorflow import keras
 from tensorflow.keras import Model, layers
-from models.hrnet import HRNetBody, FusionBlock
+
+from models.hrnet import FusionBlock, HRNetBody
 
 
-class HRNetStem(layers.Layer):
+class HRNetStem(layers.Layer, tfmot.sparsity.keras.PrunableLayer):
 
     def __init__(self, filters=64, **kwargs):
         super(HRNetStem, self).__init__(**kwargs)
@@ -36,8 +38,14 @@ class HRNetStem(layers.Layer):
 
         return config
 
+    def get_prunable_weights(self):
+        prunable_weights = [getattr(self.conv_1, 'kernel'),
+                            getattr(self.conv_2, 'kernel')]
 
-class HRNetTail(layers.Layer):
+        return prunable_weights
+
+
+class HRNetTail(layers.Layer, tfmot.sparsity.keras.PrunableLayer):
 
     def __init__(self, input_channels=64, output_channels=17, **kwargs):
         super(HRNetTail, self).__init__(**kwargs)
@@ -75,6 +83,12 @@ class HRNetTail(layers.Layer):
                        "output_channels": self.output_channels})
 
         return config
+
+    def get_prunable_weights(self):
+        prunable_weights = [getattr(self.conv_1, 'kernel'),
+                            getattr(self.conv_2, 'kernel')]
+
+        return prunable_weights
 
 
 def HRNetV2(width=18, output_channels=98):

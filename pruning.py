@@ -1,12 +1,22 @@
 import os
+from argparse import ArgumentParser
 
 import tensorflow as tf
 import tensorflow_model_optimization as tfmot
 from tensorflow import keras
-from tensorflow.python.keras.engine.base_layer import TensorFlowOpLayer
 
 from dataset import make_wflw_dataset
 from network import HRNetV2
+
+
+parser = ArgumentParser()
+parser.add_argument("--epochs", default=60, type=int,
+                    help="Number of training epochs.")
+parser.add_argument("--initial_epoch", default=0, type=int,
+                    help="From which epochs to resume training.")
+parser.add_argument("--batch_size", default=32, type=int,
+                    help="Training batch size.")
+args = parser.parse_args()
 
 
 if __name__ == "__main__":
@@ -40,4 +50,48 @@ if __name__ == "__main__":
     model_pruned = tfmot.sparsity.keras.prune_low_magnitude(
         model, **pruning_params)
 
-    model.summary()
+    model_pruned.summary()
+
+    # Hyper parameters for training.
+    epochs = args.epochs
+    batch_size = args.batch_size
+
+    # Save a checkpoint. This could be used to resume training.
+    checkpoint_path = os.path.join(checkpoint_dir, "ckpt")
+    callback_checkpoint = keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_path,
+        save_weights_only=False,
+        verbose=1,
+        save_best_only=True)
+
+    callbacks = [
+        tfmot.sparsity.keras.UpdatePruningStep(),
+        tfmot.sparsity.keras.PruningSummaries(log_dir="./log"),
+    ]
+
+    # Construct training datasets.
+    train_files_dir = "/home/robin/data/facial-marks/wflw_cropped/train"
+    dataset_train = make_wflw_dataset(train_files_dir, "wflw_train",
+                                      training=True,
+                                      batch_size=args.batch_size,
+                                      mode="generator")
+    if not isinstance(dataset_train, keras.utils.Sequence):
+        dataset_train = dataset_train.batch(args.batch_size)
+
+    # Construct dataset for validation & testing.
+    test_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
+    dataset_val = make_wflw_dataset(test_files_dir, "wflw_test",
+                                    training=False,
+                                    batch_size=args.batch_size,
+                                    mode="generator")
+    if not isinstance(dataset_val, keras.utils.Sequence):
+        dataset_val = dataset_val.batch(args.batch_size)
+
+    model_pruned.compile(optimizer=keras.optimizers.Adam(0.0001),
+                         loss=keras.losses.MeanSquaredError(),
+                         metrics=[keras.metrics.MeanSquaredError()])
+
+    # Start training loop.
+    model_pruned.fit(dataset_train, validation_data=dataset_val,
+                     epochs=epochs, callbacks=callbacks,
+                     initial_epoch=args.initial_epoch)

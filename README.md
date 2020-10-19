@@ -103,17 +103,7 @@ python3 quantization.py
 ```
 Quantized tflite file will be found in the `optimized` directory.
 
-### Quantization aware training
-
-> Coming soon
-
-### Pruning
-
-> Coming soon
-
-### Clustering
-
-> Coming soon
+> Quantization aware training, pruning and clustering are only supported by tf-nightly.
 
 ## Authors
 Yin Guobing (尹国冰) - yinguobing

@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from dataset import make_wflw_dataset
-from network import HRNetV2
+from network import hrnet_v2
 
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=60, type=int,
@@ -64,7 +64,7 @@ class EpochBasedLearningRateSchedule(keras.callbacks.Callback):
 if __name__ == "__main__":
 
     # Create the model.
-    model = HRNetV2(width=18, output_channels=98)
+    model = hrnet_v2(input_shape=(256, 256, 3), width=18, output_channels=98)
 
     # Restore the latest model if checkpoints are available.`
     checkpoint_dir = "./checkpoints"
@@ -77,6 +77,7 @@ if __name__ == "__main__":
         model.load_weights(latest_checkpoint)
         print("Checkpoint restored: {}".format(latest_checkpoint))
 
+    # Compile and print the model summary.
     model.compile(optimizer=keras.optimizers.Adam(0.0001),
                   loss=keras.losses.MeanSquaredError(),
                   metrics=[keras.metrics.MeanSquaredError()])
@@ -142,5 +143,4 @@ if __name__ == "__main__":
 
     # Save the model for inference.
     if args.export_only:
-        # model.predict(tf.zeros((1, 256, 256, 3)))
         model.save("./exported")

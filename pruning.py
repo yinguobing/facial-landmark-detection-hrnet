@@ -95,3 +95,15 @@ if __name__ == "__main__":
     model_pruned.fit(dataset_train, validation_data=dataset_val,
                      epochs=epochs, callbacks=callbacks,
                      initial_epoch=args.initial_epoch)
+
+    model_pruned.summary()
+
+    # Export
+    model_for_export = tfmot.sparsity.keras.strip_pruning(model_pruned)
+
+    converter = tf.lite.TFLiteConverter.from_keras_model(model_for_export)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    pruned_tflite_model = converter.convert()
+
+    with open("pruned_tflite_file.tflite", 'wb') as f:
+        f.write(pruned_tflite_model)

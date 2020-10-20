@@ -21,6 +21,8 @@ if __name__ == "__main__":
     # Restore the model.
     model = tf.keras.models.load_model("./exported")
 
+    model.summary()
+
     # Video source from webcam or video file.
     video_src = args.cam if args.cam is not None else args.video
     if video_src is None:
@@ -53,7 +55,7 @@ if __name__ == "__main__":
         heatmaps = model.predict(tf.expand_dims(img_input, 0))[0]
 
         # Parse the heatmaps to get mark locations.
-        marks, heatmap_grid = parse_heatmaps(heatmaps)
+        marks, heatmap_grid = parse_heatmaps(heatmaps, (256, 256))
         for mark in marks:
             cv2.circle(frame, tuple(mark.astype(int)), 2, (0, 255, 0), -1)
 

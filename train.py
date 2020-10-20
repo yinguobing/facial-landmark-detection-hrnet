@@ -81,6 +81,8 @@ if __name__ == "__main__":
                   loss=keras.losses.MeanSquaredError(),
                   metrics=[keras.metrics.MeanSquaredError()])
 
+    model.summary()
+
     # Construct dataset for validation & testing.
     test_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
     dataset_val = make_wflw_dataset(test_files_dir, "wflw_test",
@@ -140,5 +142,5 @@ if __name__ == "__main__":
 
     # Save the model for inference.
     if args.export_only:
-        model.predict(tf.zeros((1, 256, 256, 3)))
+        # model.predict(tf.zeros((1, 256, 256, 3)))
         model.save("./exported")

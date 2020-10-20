@@ -77,23 +77,30 @@ class HRNetTail(layers.Layer):
         return config
 
 
-class HRNetV2(Model):
+def HRNetV2(width=18, output_channels=98):
+    """This function returns a functional model of HRNetV2.
 
-    def __init__(self, width=18, output_channels=98, **kwargs):
-        super(HRNetV2, self).__init__(**kwargs)
+    Args:
+        width: the hyperparameter width.
+        output_channels: number of output channels.
 
-        self.stem = HRNetStem(64)
-        self.body = HRNetBody(width)
-        last_stage_width = sum([width * pow(2, n) for n in range(4)])
-        self.tail = HRNetTail(input_channels=last_stage_width,
-                              output_channels=output_channels)
+    Returns:
+        a functional model.
+    """
+    # Get the output size of the HRNet body.
+    last_stage_width = sum([width * pow(2, n) for n in range(4)])
 
-    def call(self, inputs):
-        x = self.stem(inputs)
-        x = self.body(x)
-        x = self.tail(x)
+    # Describe the model.
+    inputs = keras.Input((256, 256, 3), dtype=tf.float32)
+    x = HRNetStem(64)(inputs)
+    x = HRNetBody(width)(x)
+    outputs = HRNetTail(input_channels=last_stage_width,
+                        output_channels=output_channels)(x)
 
-        return x
+    # Construct the model and return it.
+    model = keras.Model(inputs=inputs, outputs=outputs, name="hrnetv2")
+
+    return model
 
 
 if __name__ == "__main__":

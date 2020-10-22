@@ -74,7 +74,7 @@ if __name__ == "__main__":
     checkpoint_dir = "./checkpoints"
 
     # Save the model for inference later.
-    export_path = "./exported"
+    export_dir = "./exported"
 
     # Log directory will keep training logs like loss/accuracy curves.
     log_dir = "./logs"
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     model.compile(optimizer=keras.optimizers.Adam(0.0001),
                   loss=keras.losses.MeanSquaredError(),
                   metrics=[keras.metrics.MeanSquaredError()])
-    model.summary()
+    # model.summary()
 
     # Model built. Restore the latest model if checkpoints are available.
     if not os.path.exists(checkpoint_dir):
@@ -96,13 +96,18 @@ if __name__ == "__main__":
 
     latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
     if latest_checkpoint:
+        print("Checkpoint found: {}, restoring..".format(latest_checkpoint))
         model.load_weights(latest_checkpoint)
         print("Checkpoint restored: {}".format(latest_checkpoint))
+    else:
+        print("Checkpoint not found. Model weights will be initialized randomly.")
 
     # If the restored model is ready for inference, save it and quit training.
     if args.export_only:
-        model.save(export_path)
-        print("Model saved at: {}".format(export_path))
+        if latest_checkpoint is None:
+            print("Warning: Model not restored from any checkpoint.")
+        model.save(export_dir)
+        print("Model saved at: {}".format(export_dir))
         quit()
 
     # Construct a dataset for evaluation.
@@ -146,7 +151,7 @@ if __name__ == "__main__":
     checkpoint_path = os.path.join(checkpoint_dir, "hrnetv2")
     callback_checkpoint = keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_path,
-        save_weights_only=False,
+        save_weights_only=True,
         verbose=1,
         save_best_only=True)
 
@@ -171,7 +176,7 @@ if __name__ == "__main__":
             batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
     # Start training loop.
-    model.fit(dataset_train, validation_data=dataset_test,
+    model.fit(dataset_train, validation_data=dataset_val,
               epochs=epochs, callbacks=callbacks,
               initial_epoch=args.initial_epoch)
 

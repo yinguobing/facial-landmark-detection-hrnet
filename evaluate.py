@@ -107,7 +107,7 @@ if __name__ == "__main__":
     model = tf.keras.models.load_model("./exported")
     print("FP32: ", evaluate(make_dataset(), model))
 
-    # Evaluate with FP16 model.
-    model_qdr = TFLiteModelPredictor(
-        "./optimized/hrnet_quant_fp16.tflite")
-    print("FP16 quantized:", evaluate(make_dataset(), model_qdr))
+    # # Evaluate with FP16 model.
+    # model_qdr = TFLiteModelPredictor(
+    #     "./optimized/hrnet_quant_fp16.tflite")
+    # print("FP16 quantized:", evaluate(make_dataset(), model_qdr))

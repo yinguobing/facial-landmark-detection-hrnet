@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -97,6 +98,11 @@ class TFLiteModelPredictor(object):
 
 
 if __name__ == "__main__":
+    # The directory to save quantized models.
+    export_dir = "./optimized"
+
+    if not os.path.exists(export_dir):
+        os.makedirs(export_dir)
 
     # The model to be quantized.
     saved_model = "./exported"
@@ -124,3 +130,9 @@ if __name__ == "__main__":
     mode.update({"FP16": True})
     tflite_model = quantize(saved_model, mode)
     open("./optimized/hrnet_quant_fp16.tflite", "wb").write(tflite_model)
+
+    # 16x8 quantization
+    mode = MODE.copy()
+    mode.update({"16x8": True})
+    tflite_model = quantize(saved_model, mode)
+    open("./optimized/hrnet_quant_16x8.tflite", "wb").write(tflite_model)

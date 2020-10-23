@@ -53,7 +53,7 @@ if __name__ == "__main__":
         heatmaps = model.predict(tf.expand_dims(img_input, 0))[0]
 
         # Parse the heatmaps to get mark locations.
-        marks, heatmap_grid = parse_heatmaps(heatmaps)
+        marks, heatmap_grid = parse_heatmaps(heatmaps, (256, 256))
         for mark in marks:
             cv2.circle(frame, tuple(mark.astype(int)), 2, (0, 255, 0), -1)
 

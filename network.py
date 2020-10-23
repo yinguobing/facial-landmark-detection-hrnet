@@ -1,7 +1,44 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import Model, layers
-from models.hrnet import HRNetBody, FusionBlock
+from models.hrnet import hrnet_body
+
+
+def hrnet_stem(filters=64):
+    stem_layers = [layers.Conv2D(filters, 3, 2, 'same'),
+                   layers.BatchNormalization(),
+                   layers.Conv2D(filters, 3, 2, 'same'),
+                   layers.BatchNormalization(),
+                   layers.Activation('relu')]
+
+    def forward(x):
+        for layer in stem_layers:
+            x = layer(x)
+        return x
+
+    return forward
+
+
+def hrnet_heads(input_channels=64, output_channels=17):
+    # Construct up sacling layers.
+    scales = [2, 4, 8]
+    up_scale_layers = [layers.UpSampling2D((s, s)) for s in scales]
+    concatenate_layer = layers.Concatenate(axis=3)
+    heads_layers = [layers.Conv2D(filters=input_channels, kernel_size=(1, 1),
+                                  strides=(1, 1), padding='same'),
+                    layers.BatchNormalization(),
+                    layers.Activation('relu'),
+                    layers.Conv2D(filters=output_channels, kernel_size=(1, 1),
+                                  strides=(1, 1), padding='same')]
+
+    def forward(inputs):
+        scaled = [f(x) for f, x in zip(up_scale_layers, inputs[1:])]
+        x = concatenate_layer([inputs[0], scaled[0], scaled[1], scaled[2]])
+        for layer in heads_layers:
+            x = layer(x)
+        return x
+
+    return forward
 
 
 class HRNetStem(layers.Layer):
@@ -37,10 +74,10 @@ class HRNetStem(layers.Layer):
         return config
 
 
-class HRNetTail(layers.Layer):
+class HRNetHeads(layers.Layer):
 
     def __init__(self, input_channels=64, output_channels=17, **kwargs):
-        super(HRNetTail, self).__init__(**kwargs)
+        super(HRNetHeads, self).__init__(**kwargs)
 
         self.input_channels = input_channels
         self.output_channels = output_channels
@@ -70,33 +107,39 @@ class HRNetTail(layers.Layer):
         return x
 
     def get_config(self):
-        config = super(HRNetTail, self).get_config()
+        config = super(HRNetHeads, self).get_config()
         config.update({"input_channels": self.input_channels,
                        "output_channels": self.output_channels})
 
         return config
 
 
-class HRNetV2(Model):
+def hrnet_v2(input_shape=(256, 256, 3), width=18, output_channels=98):
+    """This function returns a functional model of HRNetV2.
 
-    def __init__(self, width=18, output_channels=98, **kwargs):
-        super(HRNetV2, self).__init__(**kwargs)
+    Args:
+        width: the hyperparameter width.
+        output_channels: number of output channels.
 
-        self.stem = HRNetStem(64)
-        self.body = HRNetBody(width)
-        last_stage_width = sum([width * pow(2, n) for n in range(4)])
-        self.tail = HRNetTail(input_channels=last_stage_width,
-                              output_channels=output_channels)
+    Returns:
+        a functional model.
+    """
+    # Get the output size of the HRNet body.
+    last_stage_width = sum([width * pow(2, n) for n in range(4)])
 
-    def call(self, inputs):
-        x = self.stem(inputs)
-        x = self.body(x)
-        x = self.tail(x)
+    # Describe the model.
+    inputs = keras.Input(input_shape, dtype=tf.float32)
+    x = hrnet_stem(64)(inputs)
+    x = hrnet_body(width)(x)
+    outputs = hrnet_heads(input_channels=last_stage_width,
+                          output_channels=output_channels)(x)
 
-        return x
+    # Construct the model and return it.
+    model = keras.Model(inputs=inputs, outputs=outputs, name="hrnetv2")
+
+    return model
 
 
 if __name__ == "__main__":
-    model = HRNetV2(18)
-    model(keras.Input((256, 256, 3)))
+    model = hrnet_v2((256, 256, 3), 18, 98)
     model.summary()

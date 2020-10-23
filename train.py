@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from callbacks import EpochBasedLearningRateSchedule
-from dataset import make_wflw_dataset
+from dataset import build_dataset_from_wflw
 from network import hrnet_v2
 
 parser = ArgumentParser()
@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
     if latest_checkpoint:
-        print("Checkpoint found: {}, restoring..".format(latest_checkpoint))
+        print("Checkpoint found: {}, restoring...".format(latest_checkpoint))
         model.load_weights(latest_checkpoint)
         print("Checkpoint restored: {}".format(latest_checkpoint))
     else:
@@ -69,18 +69,18 @@ if __name__ == "__main__":
     if args.export_only:
         if latest_checkpoint is None:
             print("Warning: Model not restored from any checkpoint.")
+        print("Saving model to {} ...".format(export_dir))
         model.save(export_dir)
         print("Model saved at: {}".format(export_dir))
         quit()
 
     # Construct a dataset for evaluation.
-    dataset_test = make_wflw_dataset(test_files_dir, "wflw_test",
-                                     training=False,
-                                     batch_size=args.batch_size,
-                                     mode="generator")
-    if not isinstance(dataset_test, keras.utils.Sequence):
-        dataset_test = dataset_test.batch(
-            args.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+    dataset_test = build_dataset_from_wflw(test_files_dir, "wflw_test",
+                                           training=False,
+                                           batch_size=args.batch_size,
+                                           shuffle=False,
+                                           prefetch=tf.data.experimental.AUTOTUNE,
+                                           mode="generator")
 
     # If only evaluation is required.
     if args.eval_only:
@@ -89,13 +89,12 @@ if __name__ == "__main__":
 
     # Construct dataset for validation. The loss value from this dataset will be
     # used to decide which checkpoint should be preserved.
-    dataset_val = make_wflw_dataset(test_files_dir, "wflw_test",
-                                    training=False,
-                                    batch_size=args.batch_size,
-                                    mode="generator").take(320)
-    if not isinstance(dataset_val, keras.utils.Sequence):
-        dataset_val = dataset_val.batch(args.batch_size).prefetch(
-            tf.data.experimental.AUTOTUNE)
+    dataset_val = build_dataset_from_wflw(test_files_dir, "wflw_test",
+                                          training=False,
+                                          batch_size=args.batch_size,
+                                          shuffle=False,
+                                          prefetch=tf.data.experimental.AUTOTUNE,
+                                          mode="generator").take(320)
 
     # Finally, it's time to train the model.
 
@@ -130,13 +129,12 @@ if __name__ == "__main__":
     callbacks = [callback_checkpoint, callback_tensorboard, callback_lr]
 
     # Construct training datasets.
-    dataset_train = make_wflw_dataset(train_files_dir, "wflw_train",
-                                      training=True,
-                                      batch_size=batch_size,
-                                      mode="generator")
-    if not isinstance(dataset_train, keras.utils.Sequence):
-        dataset_train = dataset_train.shuffle(1024).batch(
-            batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+    dataset_train = build_dataset_from_wflw(train_files_dir, "wflw_train",
+                                            training=True,
+                                            batch_size=batch_size,
+                                            shuffle=True,
+                                            prefetch=tf.data.experimental.AUTOTUNE,
+                                            mode="generator")
 
     # Start training loop.
     model.fit(dataset_train, validation_data=dataset_val,

@@ -1,10 +1,12 @@
 """Sample module for predicting face marks with HRNetV2."""
+from argparse import ArgumentParser
+
 import cv2
 import numpy as np
 import tensorflow as tf
 
-from argparse import ArgumentParser
-from preprocess import normalize
+from postprocessing import parse_heatmaps
+from preprocessing import normalize
 
 # Take arguments from user input.
 parser = ArgumentParser()
@@ -188,6 +190,8 @@ if __name__ == "__main__":
     # Restore the model.
     model = tf.keras.models.load_model("./exported")
 
+    model.summary()
+
     # Video source from webcam or video file.
     video_src = args.cam if args.cam is not None else args.video
     if video_src is None:
@@ -250,14 +254,13 @@ if __name__ == "__main__":
                 cv2.circle(frame, tuple(mark.astype(int)), 2, (0, 255, 0), -1)
             face_detector.draw_box(frame, [facebox])
 
+            # Show the result in windows.
+            cv2.imshow('image', frame)
             cv2.imshow("heatmap_grid", heatmap_grid)
 
-        # Show the result in windows.
-        cv2.imshow('image', frame)
+            # Write video file.
+            if args.write_video:
+                video_writer.write(frame)
 
-        # Write video file.
-        if args.write_video:
-            video_writer.write(frame)
-
-        if cv2.waitKey(1) == 27:
-            break
+            if cv2.waitKey(1) == 27:
+                break

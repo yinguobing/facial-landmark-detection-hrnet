@@ -1,6 +1,10 @@
 # facial-landmark-detection-hrnet
 A TensorFlow implementation of HRNet for facial landmark detection.
 
+![ms_marvel](./doc/../docs/ms_marvel.gif)
+
+Watch this demo video: [HRNet Facial Landmark Detection (bilibili)](https://www.bilibili.com/video/BV1Vy4y1C79p/).
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
@@ -73,12 +77,12 @@ tensorboard --logdir /path/to//facial-landmark-detection-hrnet/log
 
 ```
 ## Evaluation
-Evaluation on validation datasets will be performed automatically after training. But you can perform evaluation without training like this:
+A quick evaluation on validation datasets will be performed automatically after training. For a full evaluation, please run the `evaluate.py` file. The NME value will be printed after evaluation.
 
 ```
-python3 train.py --eval_only=True
+python3 evaluate.py
 ```
-Do not forget setting the validation dataset.
+Do not forget setting the evaluation dataset.
 
 ## Export for inference
 Exported model will be saved in `saved_model` format in directory `./exported`.
@@ -88,6 +92,18 @@ python3 train.py --export_only=True
 
 ## Inference
 Check out module `predict.py` for details.
+
+## Optimization
+Optimize the model so it can run on mobile, embedded, and IoT devices. TensorFlow supports post-training quantization, quantization aware training, pruning, and clustering.
+
+### Post training quantization
+There are multiple means for post training quantization: dynamic range, integer only, float16. To quantize the model, run:
+```bash
+python3 quantization.py
+```
+Quantized tflite file will be found in the `optimized` directory.
+
+> Quantization aware training, pruning and clustering are only supported by tf-nightly.
 
 ## Authors
 Yin Guobing (尹国冰) - yinguobing

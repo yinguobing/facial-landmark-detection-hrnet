@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # TensorFlow training files
-log
+logs
 checkpoints
 exported
 tflite

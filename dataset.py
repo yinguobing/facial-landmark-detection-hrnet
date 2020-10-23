@@ -5,7 +5,7 @@ import tensorflow as tf
 
 from fmd.universal import Universal
 from preprocessing import (flip_randomly, generate_heatmaps, normalize,
-                        rotate_randomly, scale_randomly)
+                           rotate_randomly, scale_randomly)
 
 
 def generate_wflw_data(data_dir, name, training):
@@ -110,12 +110,22 @@ class WFLWSequence(tf.keras.utils.Sequence):
         return np.array(batch_x), np.array(batch_y)
 
 
-def make_wflw_dataset(data_dir, name, training=True, batch_size=None, mode="sequence"):
+def build_dataset_from_wflw(data_dir,
+                            name,
+                            training=True,
+                            batch_size=None,
+                            shuffle=True,
+                            prefetch=None,
+                            mode="sequence"):
     """Generate WFLW dataset from image and json files.
 
     Args:
         data_dir: the directory of the images and json files.
         name: dataset name.
+        training: True if dataset is for training.
+        batch_size: batch size.
+        shuffle: True if data should be shuffled.
+        prefetch: Set to True to prefetch data.
         mode: keras Sequence or dataset from generator.
 
     Returns:
@@ -123,14 +133,27 @@ def make_wflw_dataset(data_dir, name, training=True, batch_size=None, mode="sequ
     """
     if mode == 'sequence':
         dataset = WFLWSequence(data_dir, name, training, batch_size)
-        print("Dataset of sequence made.")
+        print("Dataset of sequence built: {}".format(name))
     else:
         dataset = tf.data.Dataset.from_generator(
             generate_wflw_data,
             output_types=(tf.float32, tf.float32),
             output_shapes=((256, 256, 3), (64, 64, 98)),
             args=[data_dir, "name", training])
-        print("Dataset from generator made.")
+        print("Dataset built from generator: {}".format(name))
+
+    # Shuffle the data.
+    if shuffle:
+        dataset = dataset.shuffle(1024)
+
+    # Make data batch.
+    if not isinstance(dataset, tf.keras.utils.Sequence):
+        dataset = dataset.batch(batch_size)
+
+    # Prefetch the data.
+    if prefetch is not None:
+        dataset = dataset.prefetch(prefetch)
+
     return dataset
 
 
@@ -190,7 +213,8 @@ if __name__ == "__main__":
         img_g, heatmap_g = sample_g
 
         img_s, heatmaps_s = _parse_heatmaps(img_s[0], heatmap_s[0])
-        img_g, heatmaps_g = _parse_heatmaps(img_g[0].numpy(), heatmap_g[0].numpy())
+        img_g, heatmaps_g = _parse_heatmaps(
+            img_g[0].numpy(), heatmap_g[0].numpy())
 
         # Show the result in windows.
         cv2.imshow("images", np.hstack((img_s, img_g)))

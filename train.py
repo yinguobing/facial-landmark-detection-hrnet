@@ -4,6 +4,7 @@ import os
 from argparse import ArgumentParser
 
 import tensorflow as tf
+import tensorflow_model_optimization as tfmot
 from tensorflow import keras
 
 from callbacks import EpochBasedLearningRateSchedule
@@ -21,6 +22,8 @@ parser.add_argument("--export_only", default=False, type=bool,
                     help="Save the model without training.")
 parser.add_argument("--eval_only", default=False, type=bool,
                     help="Evaluate the model without training.")
+parser.add_argument("--quantization", default=False, type=bool,
+                    help="Excute quantization aware training.")
 args = parser.parse_args()
 
 
@@ -46,13 +49,10 @@ if __name__ == "__main__":
     # `network` module with TensorFlow's functional API.
     model = hrnet_v2(input_shape=(256, 256, 3), width=18, output_channels=98)
 
-    # Compile the model and print the model summary.
-    model.compile(optimizer=keras.optimizers.Adam(0.0001),
-                  loss=keras.losses.MeanSquaredError(),
-                  metrics=[keras.metrics.MeanSquaredError()])
-    # model.summary()
+    # Check the model summary.
+    model.summary()
 
-    # Model built. Restore the latest model if checkpoints are available.
+    # Model created. Restore the latest model if checkpoints are available.
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
         print("Checkpoint directory created: {}".format(checkpoint_dir))
@@ -73,6 +73,17 @@ if __name__ == "__main__":
         model.save(export_dir)
         print("Model saved at: {}".format(export_dir))
         quit()
+
+    # Now is a good time to set up quantization aware training with TensorFlow
+    # Model Optimization Toolkits.
+    if args.quantization:
+        model = tfmot.quantization.keras.quantize_model(model)
+        model.summary()
+
+    # The model should be compiled before training.
+    model.compile(optimizer=keras.optimizers.Adam(0.0001),
+                  loss=keras.losses.MeanSquaredError(),
+                  metrics=[keras.metrics.MeanSquaredError()])
 
     # Construct a dataset for evaluation.
     dataset_test = build_dataset_from_wflw(test_files_dir, "wflw_test",

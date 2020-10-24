@@ -12,6 +12,7 @@ These instructions will get you a copy of the project up and running on your loc
 ### Prerequisites
 
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-v2.3-brightgreen)
+![TensorFlow Model Optimizer Toolkit](https://img.shields.io/badge/TensorFlow_Model_Optimization_Toolkit-v0.5-brightgreen)
 ![OpenCV](https://img.shields.io/badge/OpenCV-v4.3-brightgreen)
 ![Numpy](https://img.shields.io/badge/Numpy-v1.17-brightgreen)
 

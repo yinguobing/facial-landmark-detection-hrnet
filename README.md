@@ -131,9 +131,6 @@ git checkout features/quantization-aware-training
 python3 train.py --quantization=True
 ```
 
-### clustering
-[coming soon]
-
 ## Authors
 Yin Guobing (尹国冰) - yinguobing
 

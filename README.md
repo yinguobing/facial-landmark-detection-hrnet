@@ -98,12 +98,25 @@ Optimize the model so it can run on mobile, embedded, and IoT devices. TensorFlo
 
 ### Post training quantization
 There are multiple means for post training quantization: dynamic range, integer only, float16. To quantize the model, run:
+
 ```bash
 python3 quantization.py
 ```
-Quantized tflite file will be found in the `optimized` directory.
+Quantized tflite file will be find in the `optimized` directory.
 
-> Quantization aware training, pruning and clustering are only supported by tf-nightly.
+### Pruning
+Model pruning could dramatically reduce the model size while minimize the side effects on model accuracy. There is a demo video showing the performance of a pruned model with 80% of weights pruned (set to zero): [TensorFlow model pruning (bilibili)](https://www.bilibili.com/video/BV1Uz4y1o7Fb/)
+
+To prune the model in this repo, run:
+
+```bash
+python3 pruning.py
+
+```
+Pruned model file will be find in the `optimized` directory.
+
+
+> Quantization aware training and clustering are only supported by tf-nightly.
 
 ## Authors
 Yin Guobing (尹国冰) - yinguobing

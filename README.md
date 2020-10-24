@@ -5,6 +5,12 @@ A TensorFlow implementation of HRNet for facial landmark detection.
 
 Watch this demo video: [HRNet Facial Landmark Detection (bilibili)](https://www.bilibili.com/video/BV1Vy4y1C79p/).
 
+## Features
+ - Support multiple public dataset: WFLW, IBUG, etc.
+ - Advanced model architecture: HRNet v2
+ - Data augmentation: randomly scale/rotate/flip
+ - Model optimization: quantization, pruning
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.

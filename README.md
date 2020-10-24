@@ -116,7 +116,16 @@ python3 pruning.py
 Pruned model file will be find in the `optimized` directory.
 
 
-> Quantization aware training and clustering are only supported by tf-nightly.
+### Quantization aware training
+Due to the conflict between pruning and quantization aware training, please checkout the other branch for details.
+
+```bash
+git checkout features/quantization-aware-training
+python3 train.py --quantization=True
+```
+
+### clustering
+[coming soon]
 
 ## Authors
 Yin Guobing (尹国冰) - yinguobing

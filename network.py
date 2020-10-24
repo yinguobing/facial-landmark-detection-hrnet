@@ -3,7 +3,7 @@ import tensorflow_model_optimization as tfmot
 from tensorflow import keras
 from tensorflow.keras import Model, layers
 
-from models.hrnet import HRNetBody, hrnet_body
+from models.hrnet import HRNetBody, hrnet_body, quant_aware_upsampling2d
 
 
 def hrnet_stem(filters=64):
@@ -24,7 +24,7 @@ def hrnet_stem(filters=64):
 def hrnet_heads(input_channels=64, output_channels=17):
     # Construct up sacling layers.
     scales = [2, 4, 8]
-    up_scale_layers = [layers.UpSampling2D((s, s)) for s in scales]
+    up_scale_layers = [quant_aware_upsampling2d((s, s)) for s in scales]
     concatenate_layer = layers.Concatenate(axis=3)
     heads_layers = [layers.Conv2D(filters=input_channels, kernel_size=(1, 1),
                                   strides=(1, 1), padding='same'),
@@ -128,7 +128,7 @@ class HRNetHeads(layers.Layer):
         return prunable_weights
 
 
-def hrnet_v2(input_shape=(256, 256, 3), width=18, output_channels=98):
+def HRNetV2(input_shape=(256, 256, 3), width=18, output_channels=98):
     """This function returns a functional model of HRNetV2.
 
     Args:

@@ -10,6 +10,7 @@ from tensorflow import keras
 from callbacks import EpochBasedLearningRateSchedule
 from dataset import build_dataset_from_wflw
 from network import hrnet_v2
+from models.hrnet import quant_aware_identity, quant_aware_upsampling2d, NoOpQuantizeConfig
 
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=60, type=int,
@@ -77,7 +78,12 @@ if __name__ == "__main__":
     # Now is a good time to set up quantization aware training with TensorFlow
     # Model Optimization Toolkits.
     if args.quantization:
-        model = tfmot.quantization.keras.quantize_model(model)
+        with tfmot.quantization.keras.quantize_scope(
+            {'NoOpQuantizeConfig': NoOpQuantizeConfig,
+             'quant_aware_identity': quant_aware_identity,
+             'quant_aware_upsampling2d': quant_aware_upsampling2d}):
+            model = tfmot.quantization.keras.quantize_model(model)
+
         model.summary()
 
     # The model should be compiled before training.

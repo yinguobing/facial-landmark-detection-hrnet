@@ -62,7 +62,7 @@ test_files_dir = "/path/to/wflw_test"
 The HRNet architecture is flexible. Custom the model if needed.
 
 ```python
-model = HRNetV2(width=18, output_channels=98)
+model = hrnet_v2(width=18, output_channels=98)
 ```
 
 `output_channels` equals to the number of facial marks of the dataset.
@@ -77,10 +77,10 @@ python3 train.py --epochs=80 --batch_size=32
 Training checkpoints can be found in directory `./checkpoints`. Before training started, this directory will be checked and the model will be restored if any checkpoint is available. Only the best model (smallest validation loss) will be saved.
 
 ### Monitor the training process
-Use TensorBoard. The log and profiling files are in directory `./log`
+Use TensorBoard. The log and profiling files are in directory `./logs`
 
 ```shell
-tensorboard --logdir /path/to//facial-landmark-detection-hrnet/log
+tensorboard --logdir /path/to/facial-landmark-detection-hrnet/log
 
 ```
 ## Evaluation
@@ -89,16 +89,16 @@ A quick evaluation on validation datasets will be performed automatically after 
 ```
 python3 evaluate.py
 ```
-Do not forget setting the evaluation dataset.
 
 ## Export for inference
 Exported model will be saved in `saved_model` format in directory `./exported`.
+
 ```shell
 python3 train.py --export_only=True
 ```
 
 ## Inference
-Check out module `predict.py` for details.
+Check out module `predict.py` for details. If you want to test with video files or webcams, check out branch `features/with-face-detector`.
 
 ## Optimization
 Optimize the model so it can run on mobile, embedded, and IoT devices. TensorFlow supports post-training quantization, quantization aware training, pruning, and clustering.

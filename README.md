@@ -27,7 +27,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ```shell
 # From your favorite development directory
-git clone https://github.com/yinguobing/facial-landmark-detection-hrnet.git
+git clone --recursive https://github.com/yinguobing/facial-landmark-detection-hrnet.git
 ```
 
 #### Generate the training data

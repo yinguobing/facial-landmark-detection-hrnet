@@ -76,11 +76,18 @@ python3 train.py --epochs=80 --batch_size=32
 
 Training checkpoints can be found in directory `./checkpoints`. Before training started, this directory will be checked and the model will be restored if any checkpoint is available. Only the best model (smallest validation loss) will be saved.
 
+### Resume training
+If training was interupted, resume it by providing `--initial_epoch` argument.
+
+```bash
+python3 train.py --epochs=80 --initial_epoch=61
+```
+
 ### Monitor the training process
 Use TensorBoard. The log and profiling files are in directory `./logs`
 
 ```shell
-tensorboard --logdir /path/to/facial-landmark-detection-hrnet/log
+tensorboard --logdir /path/to/facial-landmark-detection-hrnet/logs
 
 ```
 ## Evaluation
@@ -90,15 +97,35 @@ A quick evaluation on validation datasets will be performed automatically after 
 python3 evaluate.py
 ```
 
-## Export for inference
-Exported model will be saved in `saved_model` format in directory `./exported`.
+## Export
+Even though the model wights are saved in the checkpoint, it is better to save the entire model so you won't need the source code to restore it. This is useful for inference and model optimization later.
+
+### For cloud/PC applications
+Exported model will be saved in `saved_model` format in directory `./exported`. You can restore the model with `Keras` directly.
 
 ```shell
 python3 train.py --export_only=True
 ```
+### For Android phone, embedded and IoT devices
+TensorFlow lite and TensorFlow Model Optimization Toolkit will help you to get a optimized model for these applications. Please follow the instructions of the later section *Optimization*.
+
+### For iPhone
+Apple has developed a conversion tool named [coremltools](https://github.com/apple/coremltools) which can convert and quantize the TensorFlow model into the native model format supported and accelrated by iPhone's Neural Engine.
+
+```bash
+# Install the package
+pip install --upgrade coremltools
+
+# Do the conversion.
+python3 coreml_conversion.py
+```
 
 ## Inference
 Check out module `predict.py` for details. If you want to test with video files or webcams, check out branch `features/with-face-detector`.
+
+```bash
+python3 predict.py
+```
 
 ## Optimization
 Optimize the model so it can run on mobile, embedded, and IoT devices. TensorFlow supports post-training quantization, quantization aware training, pruning, and clustering.

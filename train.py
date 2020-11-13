@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 import tensorflow as tf
 from tensorflow import keras
 
-from callbacks import EpochBasedLearningRateSchedule
+from callbacks import EpochBasedLearningRateSchedule, LogImages
 from dataset import build_dataset_from_wflw
 from network import hrnet_v2
 
@@ -42,15 +42,12 @@ if __name__ == "__main__":
     # Log directory will keep training logs like loss/accuracy curves.
     log_dir = "./logs"
 
+    # A sample image logged into tensorboard for testing purpose.
+    sample_image = "./docs/face.jpg"
+
     # All sets. Now it's time to build the model. This model is defined in the
     # `network` module with TensorFlow's functional API.
     model = hrnet_v2(input_shape=(256, 256, 3), width=18, output_channels=98)
-
-    # Compile the model and print the model summary.
-    model.compile(optimizer=keras.optimizers.Adam(0.0001),
-                  loss=keras.losses.MeanSquaredError(),
-                  metrics=[keras.metrics.MeanSquaredError()])
-    # model.summary()
 
     # Model built. Restore the latest model if checkpoints are available.
     if not os.path.exists(checkpoint_dir):
@@ -98,6 +95,12 @@ if __name__ == "__main__":
 
     # Finally, it's time to train the model.
 
+    # Compile the model and print the model summary.
+    model.compile(optimizer=keras.optimizers.Adam(0.0001),
+                  loss=keras.losses.MeanSquaredError(),
+                  metrics=[keras.metrics.MeanSquaredError()])
+    # model.summary()
+
     # Set hyper parameters for training.
     epochs = args.epochs
     batch_size = args.batch_size
@@ -125,8 +128,12 @@ if __name__ == "__main__":
     # Learning rate decay.
     callback_lr = EpochBasedLearningRateSchedule(schedule)
 
+    # Log a sample image to tensorboard.
+    callback_image = LogImages(log_dir, sample_image)
+
     # List all the callbacks.
-    callbacks = [callback_checkpoint, callback_tensorboard, callback_lr]
+    callbacks = [callback_checkpoint, callback_tensorboard, callback_lr,
+                 callback_image]
 
     # Construct training datasets.
     dataset_train = build_dataset_from_wflw(train_files_dir, "wflw_train",

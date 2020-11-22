@@ -77,7 +77,7 @@ python3 train.py --epochs=80 --batch_size=32
 Training checkpoints can be found in directory `./checkpoints`. Before training started, this directory will be checked and the model will be restored if any checkpoint is available. Only the best model (smallest validation loss) will be saved.
 
 ### Resume training
-If training was interupted, resume it by providing `--initial_epoch` argument.
+If training was interrupted, resume it by providing `--initial_epoch` argument.
 
 ```bash
 python3 train.py --epochs=80 --initial_epoch=61
@@ -101,12 +101,12 @@ python3 evaluate.py
 Even though the model wights are saved in the checkpoint, it is better to save the entire model so you won't need the source code to restore it. This is useful for inference and model optimization later.
 
 ### For cloud/PC applications
-Exported model will be saved in `saved_model` format in directory `./exported`. You can restore the model with `Keras` directly.
+Exported model will be saved in `saved_model` format in directory `./exported`. You can restore the model with `Keras` directly. Loading the model in OpenCV is also [supported](https://github.com/yinguobing/facial-landmark-detection-hrnet/issues/3).
 
 ```shell
 python3 train.py --export_only=True
 ```
-### For Android phone, embedded and IoT devices
+### For Android phones, embedded and IoT devices
 TensorFlow lite and TensorFlow Model Optimization Toolkit will help you to get a optimized model for these applications. Please follow the instructions of the later section *Optimization*.
 
 ### For iPhone

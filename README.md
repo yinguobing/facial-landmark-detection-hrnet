@@ -38,34 +38,53 @@ There are multiple public facial mark datasets available which can be used to ge
 git clone https://github.com/yinguobing/face-mesh-generator.git
 
 # Checkout the desired branch
-git checkout features/export_dataset
+git checkout features/export_for_mark_regression
 ```
 Use the module `generate_mesh_dataset.py` to generate training data. Popular public datasets like IBUG, 300-W, WFLW are supported. Checkout the full list here: [facial-landmark-dataset](https://github.com/yinguobing/facial-landmark-dataset).
 
 
 ## Training
+Deep neural network training can be complicated as you have to make sure everything is ready like datasets, checkpoints, logs, etc. But do no worry. Following these steps you should be fine.
 
-### Set the training and validation datasets
+### Setup the model.
+
+In the module `train.py`, setup your model's name and the number of marks.
+```python
+# What is the model's name?
+name = "hrnetv2"
+
+# How many marks are there for a single face sample?
+number_marks = 98
+```
+
+### Set the training and testing datasets
 
 These files do not change frequently so set them in the source code. Take WFLW as an example.
 
 ```python
-# In module `train.py`
 # Training data.
 train_files_dir = "/path/to/wflw_train"
 
-# Validation data.
+# Testing data.
 test_files_dir = "/path/to/wflw_test"
 ```
 
-### Construct the model
-The HRNet architecture is flexible. Custom the model if needed.
+### Set the validation datasets
+
+The loss value from this dataset will be used to decide which checkpoint should be preserved. Set `None` if no files available. Then about 512 of the training files will be used as validation samples.
 
 ```python
-model = hrnet_v2(width=18, output_channels=98)
+# Validation data.
+val_files_dir = None
 ```
 
-`output_channels` equals to the number of facial marks of the dataset.
+### Provide a sanity check image
+
+This sample image will be logged into TensorBoard with detected marks drawing on it. In this way you can check the model's behavior visually during training.
+
+```python
+sample_image = "docs/face.jpg"
+```
 
 ### Start training
 Set the hyper parameters in the command line.
@@ -74,7 +93,7 @@ Set the hyper parameters in the command line.
 python3 train.py --epochs=80 --batch_size=32
 ```
 
-Training checkpoints can be found in directory `./checkpoints`. Before training started, this directory will be checked and the model will be restored if any checkpoint is available. Only the best model (smallest validation loss) will be saved.
+Training checkpoints can be found in directory `checkpoints`. Before training started, this directory will be checked and the model will be restored if any checkpoint is available. Only the best model (smallest validation loss) will be saved.
 
 ### Resume training
 If training was interrupted, resume it by providing `--initial_epoch` argument.
@@ -84,7 +103,7 @@ python3 train.py --epochs=80 --initial_epoch=61
 ```
 
 ### Monitor the training process
-Use TensorBoard. The log and profiling files are in directory `./logs`
+Use TensorBoard. The log and profiling files are in directory `logs`
 
 ```shell
 tensorboard --logdir /path/to/facial-landmark-detection-hrnet/logs
@@ -101,7 +120,7 @@ python3 evaluate.py
 Even though the model wights are saved in the checkpoint, it is better to save the entire model so you won't need the source code to restore it. This is useful for inference and model optimization later.
 
 ### For cloud/PC applications
-Exported model will be saved in `saved_model` format in directory `./exported`. You can restore the model with `Keras` directly. Loading the model in OpenCV is also [supported](https://github.com/yinguobing/facial-landmark-detection-hrnet/issues/3).
+Exported model will be saved in `saved_model` format in directory `exported`. You can restore the model with `Keras` directly. Loading the model in OpenCV is also [supported](https://github.com/yinguobing/facial-landmark-detection-hrnet/issues/3).
 
 ```shell
 python3 train.py --export_only=True

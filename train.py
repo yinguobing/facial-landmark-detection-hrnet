@@ -170,5 +170,5 @@ if __name__ == "__main__":
               callbacks=callbacks,
               initial_epoch=args.initial_epoch)
 
-    # Make a full evaluation after training.
+    # Run a full evaluation after training.
     model.evaluate(dataset_test)

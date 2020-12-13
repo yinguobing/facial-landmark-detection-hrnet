@@ -8,14 +8,29 @@ from preprocessing import (flip_randomly, generate_heatmaps, normalize,
                            rotate_randomly, scale_randomly)
 
 
-def generate_wflw_data(data_dir, name, training):
-    """A generator function to make WFLW dataset"""
+def data_generator(data_dir, name, image_size, number_marks, training):
+    """A generator function used to make TensorFlow dataset.
+
+    Currently only `universal` dataset (image + json) of FMD is supported.
+
+    Args:
+        data_dir: the direcotry of the raw image and json files. 
+        name: the name of the dataset.
+        image_size: the width and height of the input images for the network.
+        number_marks: how many marks/points does one sample contains.
+        training: generated data will be used for training or not.
+
+    Yields:
+        preprocessed image and heatmaps.
+    """
 
     # Initialize the dataset with files.
     dataset = Universal(name.decode("utf-8"))
-    dataset.populate_dataset(data_dir.decode("utf-8"), key_marks_indices=[
-        60, 64, 68, 72, 76, 82])
+    dataset.populate_dataset(data_dir.decode("utf-8"), key_marks_indices=None)
+    dataset.meta.update({"num_marks": number_marks})
 
+    image_size = tuple(image_size)
+    width, _ = image_size
     for sample in dataset:
         # Follow the official preprocessing implementation.
         image = sample.read_image("RGB")
@@ -26,28 +41,31 @@ def generate_wflw_data(data_dir, name, training):
             image, marks = rotate_randomly(image, marks, (-30, 30))
 
             # Scale the image randomly.
-            image, marks = scale_randomly(image, marks)
+            image, marks = scale_randomly(image, marks, output_size=image_size)
 
             # Flip the image randomly.
             image, marks = flip_randomly(image, marks)
         else:
             # Scale the image to output size.
-            marks = marks / image.shape[0] * 256
-            image = cv2.resize(image, (256, 256))
+            marks = marks / image.shape[0] * width
+            image = cv2.resize(image, image_size)
 
         # Normalize the image.
         image_float = normalize(image.astype(float))
 
         # Generate heatmaps.
-        _, img_width, _ = image.shape
-        heatmaps = generate_heatmaps(marks, img_width, (64, 64))
+        heatmaps = generate_heatmaps(marks, width, (64, 64))
         heatmaps = np.transpose(heatmaps, (1, 2, 0))
 
         yield image_float, heatmaps
 
 
 class WFLWSequence(tf.keras.utils.Sequence):
-    """A Sequence implementation for WFLW dataset generation."""
+    """A Sequence implementation for WFLW dataset generation.
+
+    This class is not used in training. It simply demonstrates how to generate
+    a TensorFlow dataset by using Keras `Sequence`.
+    """
 
     def __init__(self, data_dir, name, training, batch_size):
         self.training = training
@@ -110,45 +128,43 @@ class WFLWSequence(tf.keras.utils.Sequence):
         return np.array(batch_x), np.array(batch_y)
 
 
-def build_dataset_from_wflw(data_dir,
-                            name,
-                            training=True,
-                            batch_size=None,
-                            shuffle=True,
-                            prefetch=None,
-                            mode="sequence"):
-    """Generate WFLW dataset from image and json files.
+def build_dataset(data_dir,
+                  name,
+                  number_marks,
+                  image_shape=(256, 256, 3),
+                  training=True,
+                  batch_size=None,
+                  shuffle=True,
+                  prefetch=None):
+    """Generate TensorFlow dataset from image and json files.
 
     Args:
         data_dir: the directory of the images and json files.
         name: dataset name.
+        image_shape: the shape of the target output image of the dataset.
+        number_marks: how many marks/points does one sample contains.
         training: True if dataset is for training.
         batch_size: batch size.
         shuffle: True if data should be shuffled.
         prefetch: Set to True to prefetch data.
-        mode: keras Sequence or dataset from generator.
 
     Returns:
-        a keras.utils.Sequence or a tf.data.dataset.
+        a tf.data.dataset.
     """
-    if mode == 'sequence':
-        dataset = WFLWSequence(data_dir, name, training, batch_size)
-        print("Dataset of sequence built: {}".format(name))
-    else:
-        dataset = tf.data.Dataset.from_generator(
-            generate_wflw_data,
-            output_types=(tf.float32, tf.float32),
-            output_shapes=((256, 256, 3), (64, 64, 98)),
-            args=[data_dir, "name", training])
-        print("Dataset built from generator: {}".format(name))
+    dataset = tf.data.Dataset.from_generator(
+        data_generator,
+        output_types=(tf.float32, tf.float32),
+        output_shapes=(image_shape, (64, 64, number_marks)),
+        args=[data_dir, name, image_shape[:2], number_marks, training])
+
+    print("Dataset built from generator: {}".format(name))
 
     # Shuffle the data.
     if shuffle:
         dataset = dataset.shuffle(1024)
 
-    # Make data batch.
-    if not isinstance(dataset, tf.keras.utils.Sequence):
-        dataset = dataset.batch(batch_size)
+    # Batch the data.
+    dataset = dataset.batch(batch_size)
 
     # Prefetch the data.
     if prefetch is not None:

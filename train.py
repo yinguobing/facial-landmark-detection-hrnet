@@ -7,8 +7,8 @@ import tensorflow as tf
 import tensorflow_model_optimization as tfmot
 from tensorflow import keras
 
-from callbacks import EpochBasedLearningRateSchedule
-from dataset import build_dataset_from_wflw
+from callbacks import EpochBasedLearningRateSchedule, LogImages
+from dataset import build_dataset
 from network import hrnet_v2
 from models.hrnet import quant_aware_identity, quant_aware_upsampling2d, NoOpQuantizeConfig
 
@@ -33,25 +33,43 @@ if __name__ == "__main__":
     # sure you have everything ready for training, like datasets, checkpoints,
     # logs, etc. Modify these paths to suit your needs.
 
-    # Datasets
+    # What is the model's name?
+    name = "hrnetv2"
+
+    # How many marks are there for a single face sample?
+    number_marks = 98
+
+    # Where are the training files?
     train_files_dir = "/home/robin/data/facial-marks/wflw_cropped/train"
+
+    # Where are the testing files?
     test_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
 
+    # Where are the validation files? Set `None` if no files available. Then 10%
+    # of the training files will be used as validation samples.
+    val_files_dir = None
+
+    # Do you have a sample image which will be logged into tensorboard for
+    # testing purpose?
+    sample_image = "docs/face.jpg"
+
+    # That should be sufficient for training. However if you want more
+    # customization, please keep going.
+
     # Checkpoint is used to resume training.
-    checkpoint_dir = "./checkpoints"
+    checkpoint_dir = os.path.join("checkpoints", name)
 
     # Save the model for inference later.
-    export_dir = "./exported"
+    export_dir = os.path.join("exported", name)
 
     # Log directory will keep training logs like loss/accuracy curves.
-    log_dir = "./logs"
+    log_dir = os.path.join("logs", name)
 
     # All sets. Now it's time to build the model. This model is defined in the
     # `network` module with TensorFlow's functional API.
-    model = hrnet_v2(input_shape=(256, 256, 3), width=18, output_channels=98)
-
-    # Check the model summary.
-    model.summary()
+    input_shape = (256, 256, 3)
+    model = hrnet_v2(input_shape=input_shape, output_channels=number_marks,
+                     width=18, name=name)
 
     # Model created. Restore the latest model if checkpoints are available.
     if not os.path.exists(checkpoint_dir):
@@ -92,32 +110,26 @@ if __name__ == "__main__":
                   metrics=[keras.metrics.MeanSquaredError()])
 
     # Construct a dataset for evaluation.
-    dataset_test = build_dataset_from_wflw(test_files_dir, "wflw_test",
-                                           training=False,
-                                           batch_size=args.batch_size,
-                                           shuffle=False,
-                                           prefetch=tf.data.experimental.AUTOTUNE,
-                                           mode="generator")
+    dataset_test = build_dataset(test_files_dir, "test",
+                                 number_marks=number_marks,
+                                 image_shape=input_shape,
+                                 training=False,
+                                 batch_size=args.batch_size,
+                                 shuffle=False,
+                                 prefetch=tf.data.experimental.AUTOTUNE)
 
     # If only evaluation is required.
     if args.eval_only:
         model.evaluate(dataset_test)
         quit()
 
-    # Construct dataset for validation. The loss value from this dataset will be
-    # used to decide which checkpoint should be preserved.
-    dataset_val = build_dataset_from_wflw(test_files_dir, "wflw_test",
-                                          training=False,
-                                          batch_size=args.batch_size,
-                                          shuffle=False,
-                                          prefetch=tf.data.experimental.AUTOTUNE,
-                                          mode="generator").take(320)
-
     # Finally, it's time to train the model.
 
-    # Set hyper parameters for training.
-    epochs = args.epochs
-    batch_size = args.batch_size
+    # Compile the model and print the model summary.
+    model.compile(optimizer=keras.optimizers.Adam(0.0001),
+                  loss=keras.losses.MeanSquaredError(),
+                  metrics=[keras.metrics.MeanSquaredError()])
+    # model.summary()
 
     # Schedule the learning rate with (epoch to start, learning rate) tuples
     schedule = [(1, 0.001),
@@ -127,9 +139,8 @@ if __name__ == "__main__":
     # All done. The following code will setup and start the trainign.
 
     # Save a checkpoint. This could be used to resume training.
-    checkpoint_path = os.path.join(checkpoint_dir, "hrnetv2")
     callback_checkpoint = keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_path,
+        filepath=checkpoint_dir,
         save_weights_only=True,
         verbose=1,
         save_best_only=True)
@@ -142,21 +153,42 @@ if __name__ == "__main__":
     # Learning rate decay.
     callback_lr = EpochBasedLearningRateSchedule(schedule)
 
+    # Log a sample image to tensorboard.
+    callback_image = LogImages(log_dir, sample_image)
+
     # List all the callbacks.
-    callbacks = [callback_checkpoint, callback_tensorboard, callback_lr]
+    callbacks = [callback_checkpoint, callback_tensorboard, callback_lr,
+                 callback_image]
 
     # Construct training datasets.
-    dataset_train = build_dataset_from_wflw(train_files_dir, "wflw_train",
-                                            training=True,
-                                            batch_size=batch_size,
-                                            shuffle=True,
-                                            prefetch=tf.data.experimental.AUTOTUNE,
-                                            mode="generator")
+    dataset_train = build_dataset(train_files_dir, "train",
+                                  number_marks=number_marks,
+                                  image_shape=input_shape,
+                                  training=True,
+                                  batch_size=args.batch_size,
+                                  shuffle=True,
+                                  prefetch=tf.data.experimental.AUTOTUNE)
+
+    # Construct dataset for validation. The loss value from this dataset will be
+    # used to decide which checkpoint should be preserved.
+    if val_files_dir:
+        dataset_val = build_dataset(val_files_dir, "validation",
+                                    number_marks=number_marks,
+                                    image_shape=input_shape,
+                                    training=False,
+                                    batch_size=args.batch_size,
+                                    shuffle=False,
+                                    prefetch=tf.data.experimental.AUTOTUNE)
+    else:
+        dataset_val = dataset_train.take(int(512/args.batch_size))
+        dataset_train = dataset_train.skip(int(512/args.batch_size))
 
     # Start training loop.
-    model.fit(dataset_train, validation_data=dataset_val,
-              epochs=epochs, callbacks=callbacks,
+    model.fit(dataset_train,
+              validation_data=dataset_val,
+              epochs=args.epochs,
+              callbacks=callbacks,
               initial_epoch=args.initial_epoch)
 
-    # Make a full evaluation after training.
+    # Run a full evaluation after training.
     model.evaluate(dataset_test)

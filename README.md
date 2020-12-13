@@ -44,7 +44,7 @@ Use the module `generate_mesh_dataset.py` to generate training data. Popular pub
 
 
 ## Training
-Deep neural network training can be complicated as you have to make sure everything is ready like datasets, checkpoints, logs, etc. But do no worry. Following these steps you should be fine.
+Deep neural network training can be complicated as you have to make sure everything is ready like datasets, checkpoints, logs, etc. But do not worry. Following these steps you should be fine.
 
 ### Setup the model.
 

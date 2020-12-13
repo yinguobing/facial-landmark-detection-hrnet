@@ -110,58 +110,63 @@ class MarkOperator(object):
 
         return marks
 
+    def _generate_heatmap(self, heatmap_size, center_point, sigma):
+        """Generating a heatmap with Gaussian distribution.
+
+        Args:
+            heatmap_size: a tuple containing the size of the heatmap.
+            center_point: a tuple containing the center point of the distribution.
+            sigma: how large area the distribution covers.
+
+        Returns:
+            a heatmap
+        """
+        def _generate_gaussian_map(sigma):
+            """Generate gaussian distribution with center value equals to 1."""
+            heat_range = 2 * sigma * 3 + 1
+            xs = np.arange(0, heat_range, 1, np.float32)
+            ys = xs[:, np.newaxis]
+            x_core = y_core = heat_range // 2
+            gaussian = np.exp(-((xs - x_core) ** 2 + (ys - y_core)
+                                ** 2) / (2 * sigma ** 2))
+
+            return gaussian
+
+        # Check that any part of the gaussian is in-bounds
+        map_height, map_width = heatmap_size
+        x, y = int(center_point[0]), int(center_point[1])
+
+        radius = sigma * 3
+        x0, y0 = x - radius, y - radius
+        x1, y1 = x + radius + 1, y + radius + 1
+
+        # If the distribution is out of the map, return an empty map.
+        if (x0 >= map_width or y0 >= map_height or x1 < 0 or y1 < 0):
+            return np.zeros(heatmap_size)
+
+        # Generate a Gaussian map.
+        gaussian = _generate_gaussian_map(sigma)
+
+        # Get the intersection area of the Gaussian map.
+        x_gauss = max(0, -x0), min(x1, map_width) - x0
+        y_gauss = max(0, -y0), min(y1, map_height) - y0
+        gaussian = gaussian[y_gauss[0]: y_gauss[1], x_gauss[0]: x_gauss[1]]
+
+        # Pad the Gaussian with zeros to get the heatmap.
+        pad_width = np.max(
+            [[0, 0, 0, 0], [y0, map_height-y1, x0, map_width-x1, ]], axis=0).reshape([2, 2])
+        heatmap = np.pad(gaussian, pad_width, mode='constant')
+
+        return heatmap
+
     def generate_heatmaps(self, norm_marks, map_size=(64, 64), sigma=3):
         """Generate heatmaps for all the marks."""
-
-        def _generate_heatmap(heatmap, point, sigma, label_type='Gaussian'):
-            """This function is borrowed from the official implementation. We
-            will use the method whatever the HRNet authors used. But some
-            variables are re-named to make it easier to read. Maybe someday I
-            will re-write this.
-            """
-            # Check that any part of the gaussian is in-bounds
-            tmp_size = sigma * 3
-            ul = [int(point[0] - tmp_size), int(point[1] - tmp_size)]
-            br = [int(point[0] + tmp_size + 1), int(point[1] + tmp_size + 1)]
-            if (ul[0] >= heatmap.shape[1] or ul[1] >= heatmap.shape[0] or
-                    br[0] < 0 or br[1] < 0):
-                # If not, just return the image as is
-                return heatmap
-
-            # Generate gaussian
-            size_heat = 2 * tmp_size + 1
-            x = np.arange(0, size_heat, 1, np.float32)
-            y = x[:, np.newaxis]
-            x0 = y0 = size_heat // 2
-
-            # The gaussian is not normalized, we want the center value to equal 1
-            if label_type == 'Gaussian':
-                heat = np.exp(- ((x - x0) ** 2 + (y - y0) ** 2) /
-                              (2 * sigma ** 2))
-            else:
-                heat = sigma / (((x - x0) ** 2 + (y - y0)
-                                 ** 2 + sigma ** 2) ** 1.5)
-
-            # Usable gaussian range
-            x_heat = max(0, -ul[0]), min(br[0], heatmap.shape[1]) - ul[0]
-            y_heat = max(0, -ul[1]), min(br[1], heatmap.shape[0]) - ul[1]
-
-            # Image range
-            x_map = max(0, ul[0]), min(br[0], heatmap.shape[1])
-            y_map = max(0, ul[1]), min(br[1], heatmap.shape[0])
-
-            heatmap[y_map[0]:y_map[1], x_map[0]:x_map[1]
-                    ] = heat[y_heat[0]: y_heat[1], x_heat[0]: x_heat[1]]
-
-            return heatmap
-
         maps = []
         width, height = map_size
         for norm_mark in norm_marks:
-            heatmap = np.zeros(map_size, dtype=float)
             x = width * norm_mark[0]
             y = height * norm_mark[1]
-            heatmap = _generate_heatmap(heatmap, (x, y), sigma)
+            heatmap = self._generate_heatmap(map_size, (x, y), sigma)
             maps.append(heatmap)
 
-        return np.array(maps, dtype=np.float)
+        return np.array(maps, dtype=np.float32)

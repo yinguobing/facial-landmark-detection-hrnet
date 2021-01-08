@@ -76,6 +76,13 @@ Use TensorBoard. The log and profiling files are in directory `./log`
 tensorboard --logdir /path/to//facial-landmark-detection-hrnet/log
 
 ```
+
+### Training speedup
+You can download this checkpoint file to speedup the training process.
+
+URL: https://pan.baidu.com/s/1XDp6hDx_aXYTV5_OF1cc6g  
+Access code: b3vm
+
 ## Evaluation
 A quick evaluation on validation datasets will be performed automatically after training. For a full evaluation, please run the `evaluate.py` file. The NME value will be printed after evaluation.
 
@@ -91,7 +98,12 @@ python3 train.py --export_only=True
 ```
 
 ## Inference
-Check out module `predict.py` for details.
+Check out module `predict.py` for details. 
+
+A pre-trained model is provided in case you want to try it in no time, or do not have adequate equipments to train it yourself.
+
+URL: https://pan.baidu.com/s/1EQsB0LnSkfvoNjMvkFV5dQ  
+Access code: qg5e
 
 ## Optimization
 Optimize the model so it can run on mobile, embedded, and IoT devices. TensorFlow supports post-training quantization, quantization aware training, pruning, and clustering.

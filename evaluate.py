@@ -104,7 +104,7 @@ def make_dataset():
 if __name__ == "__main__":
 
     # Evaluate with FP32 model.
-    model = tf.keras.models.load_model("./exported")
+    model = tf.keras.models.load_model("exported/hrnetv2")
     print("FP32: ", evaluate(make_dataset(), model))
 
     # # Evaluate with FP16 model.

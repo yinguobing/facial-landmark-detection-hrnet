@@ -28,7 +28,7 @@ if __name__ == "__main__":
     """Run human head pose estimation from video files."""
 
     # What is the threshold value for face detection.
-    threshold = 0.5
+    threshold = 0.7
 
     # Construct a face detector.
     detector_face = Detector('assets/face_model')

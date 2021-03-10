@@ -1,3 +1,6 @@
 [submodule "models"]
 	path = models
 	url = https://github.com/yinguobing/models.git
+[submodule "face_detector"]
+	path = face_detector
+	url = https://github.com/yinguobing/face_detector.git

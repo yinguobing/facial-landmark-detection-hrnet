@@ -13,8 +13,6 @@ from network import hrnet_v2
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=60, type=int,
                     help="Number of training epochs.")
-parser.add_argument("--initial_epoch", default=0, type=int,
-                    help="From which epochs to resume training.")
 parser.add_argument("--batch_size", default=32, type=int,
                     help="Training batch size.")
 args = parser.parse_args()
@@ -32,6 +30,9 @@ if __name__ == "__main__":
     # Where the pruned model will be exported
     pruned_model_path = "./optimized/pruned"
 
+    if not os.path.exists(pruned_model_path):
+        os.makedirs(pruned_model_path)
+
     # First, create the model and restore it with pretrained weights.
     model = hrnet_v2((256, 256, 3), width=18, output_channels=98)
 
@@ -46,7 +47,7 @@ if __name__ == "__main__":
             initial_sparsity=0.5,
             final_sparsity=0.8,
             begin_step=0,
-            end_step=700
+            end_step=500
         )
     }
     model_pruned = tfmot.sparsity.keras.prune_low_magnitude(

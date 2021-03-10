@@ -106,7 +106,7 @@ if __name__ == "__main__":
     # Finally, it's time to train the model.
 
     # Compile the model and print the model summary.
-    model.compile(optimizer=keras.optimizers.Adam(0.0001),
+    model.compile(optimizer=keras.optimizers.Adam(0.001, amsgrad=True, epsilon=0.001),
                   loss=keras.losses.MeanSquaredError(),
                   metrics=[keras.metrics.MeanSquaredError()])
     # model.summary()
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     callback_image = LogImages(log_dir, sample_image)
 
     # List all the callbacks.
-    callbacks = [callback_checkpoint, callback_tensorboard, callback_lr,
+    callbacks = [callback_checkpoint, callback_tensorboard, #callback_lr,
                  callback_image]
 
     # Construct training datasets.

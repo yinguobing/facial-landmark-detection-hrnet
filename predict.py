@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-from postprocessing import parse_heatmaps, draw_marks
+from postprocessing import draw_marks
 from preprocessing import normalize
 from face_detector.detector import Detector
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     detector_face = Detector('assets/face_model')
 
     # Restore the model.
-    model = tf.keras.models.load_model("./exported/hrnetv2")
+    model = tf.keras.models.load_model("./exported/mobilenet_v3")
 
     # Setup the video source. If no video file provided, the default webcam will
     # be used.
@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
         # Transform the boxes into squares.
         boxes = detector_face.transform_to_square(
-            boxes, scale=1.22, offset=(0, 0.13))
+            boxes, scale=1.4, offset=(0, 0.0))
 
         # Clip the boxes if they cross the image boundaries.
         boxes, _ = detector_face.clip_boxes(
@@ -109,30 +109,21 @@ if __name__ == "__main__":
             faces = np.array(faces, dtype=np.float32)
 
             # Do prediction.
-            heatmap_group = model.predict(faces)
-
-            # Parse the heatmaps to get mark locations.
+            mark_batch = model.predict(faces)
             mark_group = []
-            heatmap_grids = []
-            for facebox, heatmaps in zip(boxes, heatmap_group):
-                top, left, bottom, right = facebox
-                width = height = (bottom - top)
-
-                marks, heatmap_grid = parse_heatmaps(heatmaps, (width, height))
-
+            for facebox, marks in zip(boxes, mark_batch):
                 # Convert the marks locations from local CNN to global image.
-                marks[:, 0] += left
-                marks[:, 1] += top
+                top, left, bottom, right = facebox
+                width = right - left
+                height = bottom - top
+                marks[:, 0] = marks[:, 0] / 256 * width + left
+                marks[:, 1] = marks[:, 1] / 256 * height + top
 
                 mark_group.append(marks)
-                heatmap_grids.append(heatmap_grid)
 
             # Draw the marks and the facebox in the original frame.
             draw_marks(frame, mark_group)
             detector_face.draw_boxes(frame, boxes, scores)
-
-            # Show the first heatmap.
-            cv2.imshow("heatmap_grid", heatmap_grid[0])
 
         # Show the result in windows.
         cv2.imshow('image', frame)

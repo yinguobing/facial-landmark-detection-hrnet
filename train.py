@@ -8,7 +8,7 @@ from tensorflow import keras
 
 from callbacks import EpochBasedLearningRateSchedule, LogImages
 from dataset import build_dataset
-from network import hrnet_v2
+from network import mobilenet
 
 parser = ArgumentParser()
 parser.add_argument("--epochs", default=60, type=int,
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # logs, etc. Modify these paths to suit your needs.
 
     # What is the model's name?
-    name = "hrnetv2"
+    name = "mobilenet_v3"
 
     # How many marks are there for a single face sample?
     number_marks = 98
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     # Where are the validation files? Set `None` if no files available. Then 10%
     # of the training files will be used as validation samples.
-    val_files_dir = None
+    val_files_dir = "/home/robin/data/facial-marks/wflw_cropped/test"
 
     # Do you have a sample image which will be logged into tensorboard for
     # testing purpose?
@@ -64,8 +64,8 @@ if __name__ == "__main__":
     # All sets. Now it's time to build the model. This model is defined in the
     # `network` module with TensorFlow's functional API.
     input_shape = (256, 256, 3)
-    model = hrnet_v2(input_shape=input_shape, output_channels=number_marks,
-                     width=18, name=name)
+    model = mobilenet(input_shape=input_shape, output_size=number_marks*2,
+                      name=name)
 
     # Model built. Restore the latest model if checkpoints are available.
     if not os.path.exists(checkpoint_dir):
@@ -95,8 +95,7 @@ if __name__ == "__main__":
                                  image_shape=input_shape,
                                  training=False,
                                  batch_size=args.batch_size,
-                                 shuffle=False,
-                                 prefetch=tf.data.experimental.AUTOTUNE)
+                                 shuffle=False)
 
     # If only evaluation is required.
     if args.eval_only:
@@ -106,7 +105,7 @@ if __name__ == "__main__":
     # Finally, it's time to train the model.
 
     # Compile the model and print the model summary.
-    model.compile(optimizer=keras.optimizers.Adam(0.001, amsgrad=True, epsilon=0.001),
+    model.compile(optimizer=keras.optimizers.Adam(0.00001),
                   loss=keras.losses.MeanSquaredError(),
                   metrics=[keras.metrics.MeanSquaredError()])
     # model.summary()
@@ -123,11 +122,10 @@ if __name__ == "__main__":
         filepath=os.path.join(checkpoint_dir, name),
         save_weights_only=True,
         verbose=1,
-        save_best_only=True)
+        save_best_only=False)
 
     # Visualization in TensorBoard
     callback_tensorboard = keras.callbacks.TensorBoard(log_dir=log_dir,
-                                                       histogram_freq=1024,
                                                        write_graph=True,
                                                        update_freq='epoch')
     # Learning rate decay.
@@ -137,7 +135,9 @@ if __name__ == "__main__":
     callback_image = LogImages(log_dir, sample_image)
 
     # List all the callbacks.
-    callbacks = [callback_checkpoint, callback_tensorboard, #callback_lr,
+    callbacks = [callback_checkpoint,
+                 callback_tensorboard,
+                #  callback_lr,
                  callback_image]
 
     # Construct training datasets.
@@ -146,8 +146,7 @@ if __name__ == "__main__":
                                   image_shape=input_shape,
                                   training=True,
                                   batch_size=args.batch_size,
-                                  shuffle=True,
-                                  prefetch=tf.data.experimental.AUTOTUNE)
+                                  shuffle=True)
 
     # Construct dataset for validation. The loss value from this dataset will be
     # used to decide which checkpoint should be preserved.
@@ -157,8 +156,7 @@ if __name__ == "__main__":
                                     image_shape=input_shape,
                                     training=False,
                                     batch_size=args.batch_size,
-                                    shuffle=False,
-                                    prefetch=tf.data.experimental.AUTOTUNE)
+                                    shuffle=False)
     else:
         dataset_val = dataset_train.take(int(512/args.batch_size))
         dataset_train = dataset_train.skip(int(512/args.batch_size))

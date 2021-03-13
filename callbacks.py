@@ -59,12 +59,12 @@ class LogImages(keras.callbacks.Callback):
         img = normalize(img)
 
         # Do prediction.
-        heatmaps = self.model.predict(tf.expand_dims(img, 0))[0]
+        marks = self.model.predict(tf.expand_dims(img, 0))[0]
 
         # Parse the heatmaps to get mark locations.
-        marks, _ = parse_heatmaps(heatmaps, image.shape[:2])
+        marks = marks / 256 * image.shape[0]
         for mark in marks:
-            cv2.circle(image, tuple(mark.astype(int)), 2, (0, 255, 0), -1)
+            cv2.circle(image, (int(mark[0]), int(mark[1])), 2, (0, 255, 0), -1)
 
         with self.file_writer.as_default():
             # tf.summary needs a 4D tensor

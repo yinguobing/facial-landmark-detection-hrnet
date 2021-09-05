@@ -113,8 +113,8 @@ tensorboard --logdir /path/to/facial-landmark-detection-hrnet/logs
 ### Training speedup
 You can download this checkpoint file to speedup the training process.
 
-URL: https://pan.baidu.com/s/1XDp6hDx_aXYTV5_OF1cc6g  
-Access code: b3vm
+- [GoogleDrive](https://drive.google.com/file/d/1cQKrYdX0O7DsBodjTufzVzm70gXwsyaP/view?usp=sharing) 
+- [百度云盘](https://pan.baidu.com/s/1XDp6hDx_aXYTV5_OF1cc6g) (提取码 b3vm)
 
 ## Evaluation
 A quick evaluation on validation datasets will be performed automatically after training. For a full evaluation, please run the `evaluate.py` file. The NME value will be printed after evaluation.
